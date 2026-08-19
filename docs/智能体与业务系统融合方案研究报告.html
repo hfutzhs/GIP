@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能体与业务系统融合方案研究报告</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg-card: #111827;
+  --bg-elevated: #1a2235;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --primary: #3b82f6;
+  --primary-light: #60a5fa;
+  --primary-dim: #1e3a5f;
+  --accent: #06b6d4;
+  --purple: #8b5cf6;
+  --green: #10b981;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --pink: #ec4899;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+/* ===== Layout ===== */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 240px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  padding: 24px 0;
+}
+.sidebar-brand {
+  padding: 0 24px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.sidebar-brand .logo {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.sidebar-brand .logo-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+}
+.sidebar-brand .logo-text { font-size: 15px; font-weight: 700; }
+.sidebar-brand .sub { font-size: 11px; color: var(--text-dim); margin-left: 42px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 24px;
+  font-size: 13px; color: var(--text-muted);
+  cursor: pointer; transition: all .2s;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+.nav-item:hover { color: var(--text); background: var(--bg-elevated); }
+.nav-item.active { color: var(--primary-light); border-left-color: var(--primary); background: rgba(59,130,246,.06); }
+.nav-item .nav-num { font-size: 11px; color: var(--text-dim); width: 20px; }
+.main {
+  margin-left: 240px;
+  flex: 1;
+  padding: 48px 56px 80px;
+  max-width: 1100px;
+}
+/* ===== Typography ===== */
+.section { margin-bottom: 80px; scroll-margin-top: 24px; }
+.section-title {
+  font-size: 28px; font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #60a5fa, #06b6d4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.section-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+h3 { font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: var(--text); }
+h4 { font-size: 15px; font-weight: 600; margin: 24px 0 12px; color: var(--primary-light); }
+p { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+ul { margin: 8px 0 16px 20px; }
+li { font-size: 14px; color: var(--text-muted); margin-bottom: 6px; }
+strong { color: var(--text); font-weight: 600; }
+code {
+  font-family: "Fira Code", "Cascadia Code", monospace;
+  font-size: 12px; color: var(--accent);
+  background: rgba(6,182,212,.08);
+  padding: 2px 6px; border-radius: 4px;
+}
+/* ===== Cards ===== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: border-color .2s;
+}
+.card:hover { border-color: var(--primary-dim); }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) {
+  .card-grid, .card-grid-3 { grid-template-columns: 1fr; }
+}
+/* ===== Tags ===== */
+.tag {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px; margin-right: 6px;
+}
+.tag-blue { background: rgba(59,130,246,.15); color: var(--primary-light); }
+.tag-green { background: rgba(16,185,129,.15); color: var(--green); }
+.tag-purple { background: rgba(139,92,246,.15); color: var(--purple); }
+.tag-orange { background: rgba(245,158,11,.15); color: var(--orange); }
+.tag-pink { background: rgba(236,72,153,.15); color: var(--pink); }
+.tag-cyan { background: rgba(6,182,212,.15); color: var(--accent); }
+/* ===== Hero ===== */
+.hero {
+  background: linear-gradient(135deg, #0f172a 0%, #111827 50%, #0a0e1a 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px;
+  margin-bottom: 48px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -50%; right: -20%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(59,130,246,.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-badge { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 12px; letter-spacing: 1px; }
+.hero h1 { font-size: 36px; font-weight: 700; margin-bottom: 16px; line-height: 1.3; }
+.hero p { font-size: 15px; color: var(--text-muted); max-width: 600px; }
+.hero-meta { display: flex; gap: 32px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
+.hero-meta-item .num { font-size: 28px; font-weight: 700; color: var(--primary-light); }
+.hero-meta-item .label { font-size: 12px; color: var(--text-dim); }
+/* ===== Pattern Cards ===== */
+.pattern-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.pattern-card .pattern-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 16px;
+}
+.pattern-card .pattern-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.pattern-card .pattern-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.pattern-card .pattern-features { list-style: none; margin: 0; padding: 0; }
+.pattern-card .pattern-features li {
+  font-size: 12px; color: var(--text-muted);
+  padding: 4px 0; padding-left: 16px;
+  position: relative;
+}
+.pattern-card .pattern-features li::before {
+  content: '▸'; position: absolute; left: 0; color: var(--primary);
+}
+/* ===== Mockup ===== */
+.mockup {
+  background: #f8fafc;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+}
+.mockup-bar {
+  background: #e2e8f0;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mockup-body { padding: 20px; min-height: 200px; background: #fff; }
+.mockup-label { font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.mockup-caption {
+  font-size: 12px; color: var(--text-dim); text-align: center;
+  margin-top: 8px; font-style: italic;
+}
+/* ===== Flow ===== */
+.flow-step {
+  display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px;
+}
+.flow-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary-dim); color: var(--primary-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+}
+.flow-content { flex: 1; }
+.flow-content .flow-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.flow-content .flow-desc { font-size: 13px; color: var(--text-muted); }
+.flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; margin: -8px 0 4px 12px; }
+/* ===== Table ===== */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+.tbl th { text-align: left; padding: 12px 16px; background: var(--bg-elevated); color: var(--text); font-weight: 600; border-bottom: 1px solid var(--border); }
+.tbl td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+.tbl tr:hover td { background: rgba(59,130,246,.03); }
+/* ===== Tabs ===== */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 10px 20px; font-size: 13px; color: var(--text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--primary-light); border-bottom-color: var(--primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+/* ===== Mini mockup components ===== */
+.mini-sidebar { width: 48px; background: #1e293b; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; }
+.mini-sidebar .mini-icon { width: 28px; height: 28px; border-radius: 6px; background: #334155; }
+.mini-chat {
+  background: #f1f5f9; border-radius: 12px; padding: 12px 16px; font-size: 12px; color: #334155;
+  max-width: 80%; margin-bottom: 8px;
+}
+.mini-chat.ai { background: #dbeafe; border-left: 3px solid #3b82f6; }
+.mini-chat.user { background: #f0fdf4; border-left: 3px solid #10b981; margin-left: auto; }
+.mini-btn {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 4px 12px; border-radius: 6px; cursor: pointer;
+}
+.mini-btn-primary { background: #3b82f6; color: #fff; }
+.mini-btn-ghost { background: #f1f5f9; color: #475569; }
+.mini-node {
+  display: inline-block; font-size: 11px; padding: 6px 14px;
+  border-radius: 8px; border: 2px solid #e2e8f0; background: #fff;
+  color: #334155; font-weight: 500;
+}
+.mini-node.ai { border-color: #8b5cf6; background: #f5f3ff; color: #6d28d9; }
+.mini-node.start { border-color: #10b981; background: #f0fdf4; color: #047857; }
+.mini-node.end { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+.mini-float-btn {
+  position: absolute; bottom: 16px; right: 16px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #fff; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(59,130,246,.3);
+}
+.callout {
+  border-left: 4px solid var(--primary);
+  background: rgba(59,130,246,.05);
+  padding: 16px 20px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 16px 0;
+}
+.callout.warn { border-color: var(--orange); background: rgba(245,158,11,.05); }
+.callout .callout-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.divider { height: 1px; background: var(--border); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">
+        <div class="logo-icon">AI</div>
+        <div class="logo-text">智能体融合研究</div>
+      </div>
+      <div class="sub">Agent × Business Integration Report</div>
+    </div>
+    <a class="nav-item active" onclick="scrollToSec('overview')"><span class="nav-num">01</span> 报告概览</a>
+    <a class="nav-item" onclick="scrollToSec('forms')"><span class="nav-num">02</span> Agent融入业务形态</a>
+    <a class="nav-item" onclick="scrollToSec('interaction')"><span class="nav-num">03</span> 交互形式与页面示例</a>
+    <a class="nav-item" onclick="scrollToSec('flow')"><span class="nav-num">04</span> 业务操作流程</a>
+    <a class="nav-item" onclick="scrollToSec('cases')"><span class="nav-num">05</span> 市场案例分析</a>
+    <a class="nav-item" onclick="scrollToSec('recommendation')"><span class="nav-num">06</span> 平台建议</a>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- ===== Hero ===== -->
+    <div class="hero">
+      <div class="hero-badge">RESEARCH REPORT · 2026</div>
+      <h1>智能体与业务系统融合方案<br>市场调研报告</h1>
+      <p>本报告系统梳理了当前市场上 AI Agent（智能体）融入企业业务系统的主流形态、交互形式、业务操作流程，并结合 Microsoft Copilot、Salesforce Einstein、ServiceNow Now Assist、钉钉AI、飞书智能伙伴、Coze、Dify 等代表性产品，给出页面级交互示例与对光粒平台的落地建议。</p>
+      <div class="hero-meta">
+        <div class="hero-meta-item"><div class="num">4</div><div class="label">融合形态</div></div>
+        <div class="hero-meta-item"><div class="num">6</div><div class="label">交互形式</div></div>
+        <div class="hero-meta-item"><div class="num">5</div><div class="label">业务流程</div></div>
+        <div class="hero-meta-item"><div class="num">8</div><div class="label">市场案例</div></div>
+      </div>
+    </div>
+
+    <!-- ===== Section 1: Overview ===== -->
+    <div class="section" id="overview">
+      <div class="section-title">01 · 报告概览</div>
+      <p class="section-desc">智能体从"对话工具"演进为"业务参与者"，正在重构企业软件的交互范式</p>
+
+      <div class="card">
+        <h3>核心趋势</h3>
+        <p>2024–2026 年，AI Agent 的发展已从单轮问答对话进入<strong>深度业务融合</strong>阶段。市场上形成了两条清晰的演进路径：</p>
+        <ul>
+          <li><strong>从"外挂工具"到"内生节点"</strong>：早期 Agent 以独立聊天窗口存在（如 ChatGPT），用户需手动复制粘贴信息；当前主流方案将 Agent 直接嵌入业务流程节点，Agent 可读取上下文、调用业务接口、自动执行操作。</li>
+          <li><strong>从"单点辅助"到"全流程编排"</strong>：从单次问答辅助，进化为多 Agent 协作编排，覆盖"理解→规划→执行→校验→反馈"完整闭环。</li>
+        </ul>
+        <div class="callout">
+          <div class="callout-title">关键判断</div>
+          <p style="margin:0">Agent 不再是业务系统的"插件"，而是业务系统的"第二操作系统"——它直接驱动业务流转，而非仅提供信息参考。能否将 Agent 无缝编入审批流、数据流、操作流，是下一代企业平台的分水岭。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>报告范围</h3>
+        <table class="tbl">
+          <tr><th>维度</th><th>内容</th></tr>
+          <tr><td>融合形态</td><td>副驾驶模式、嵌入式Agent、自主Agent、多智能体协作</td></tr>
+          <tr><td>交互形式</td><td>侧边栏对话、内嵌面板、浮动入口、智能推荐、工作流节点、语音交互</td></tr>
+          <tr><td>业务流程</td><td>审批流程、数据分析、客户服务、营销运营、文档处理</td></tr>
+          <tr><td>市场案例</td><td>Microsoft、Salesforce、ServiceNow、钉钉、飞书、Coze、Dify、百度</td></tr>
+          <tr><td>页面示例</td><td>每种交互形式配 HTML 高保真页面 Mockup</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== Section 2: Forms ===== -->
+    <div class="section" id="forms">
+      <div class="section-title">02 · Agent 融入业务的四种形态</div>
+      <p class="section-desc">从辅助到自主，从单兵到协作——四种形态覆盖了当前市场的全部主流模式</p>
+
+      <div class="card-grid-3">
+        <!-- Form 1 -->
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background:rgba(59,130,246,.12);color:#3b82f6;">🧭</div>
+          <div class="pattern-title">副驾驶模式 Copilot</div>
+          <span class="tag tag-blue">最主流</span>
+          <p class="pattern-desc" style="margin-top:8px">Agent 作为侧边助手，用户在业务页面操作时实时提供智能建议、自动生成内容、回答问题。人不离开当前页面。</p>
+          <ul class="pattern-features">
+            <li>上下文感知：读取当前页面数据</li>
+            <li>建议优先，执行需确认</li>
+            <li>对话+操作混合交互</li>
+          </ul>
+          <div style="margin-top:12px"><span class="tag tag-cyan">Microsoft Copilot</span><span class="tag tag-cyan">钉钉AI</span></div>
+        </div>
+        <!-- Form 2 -->
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;">🔗</div>
+          <div class="pattern-title">嵌入式 Agent</div>
+          <span class="tag tag-purple">流程级</span>
+          <p class="pattern-desc" style="margin-top:8px">Agent 作为业务流程中的一个节点存在，在审批流、数据处理流中自动执行特定任务，结果直接驱动流程流转。</p>
+          <ul class="pattern-features">
+            <li>Agent = 流程节点</li>
+            <li>自动执行，结果可追溯</li>
+            <li>与人工节点混合编排</li>
+          </ul>
+          <div style="margin-top:12px"><span class="tag tag-cyan">ServiceNow</span><span class="tag tag-cyan">光粒流程Agent</span></div>
+        </div>
+        <!-- Form 3 -->
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background:rgba(16,185,129,.12);color:#10b981;">🤖</div>
+          <div class="pattern-title">自主 Agent</div>
+          <span class="tag tag-green">自动化</span>
+          <p class="pattern-desc" style="margin-top:8px">用户下达目标后，Agent 自主规划任务步骤、调用工具、执行操作，完成后返回结果。适合重复性、规则明确的任务。</p>
+          <ul class="pattern-features">
+            <li>目标驱动，非指令驱动</li>
+            <li>多步规划与自主执行</li>
+            <li>可调用外部工具/API</li>
+          </ul>
+          <div style="margin-top:12px"><span class="tag tag-cyan">Coze</span><span class="tag tag-cyan">Dify</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <!-- Form 4 -->
+        <div class="pattern-card" style="max-width:50%">
+          <div class="pattern-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;">👥</div>
+          <div class="pattern-title">多智能体协作 Multi-Agent</div>
+          <span class="tag tag-orange">前沿</span>
+          <p class="pattern-desc" style="margin-top:8px">多个具备不同专业能力的 Agent 组成协作网络，各司其职、相互协调，共同完成复杂任务。如"圆桌会议"模式中，多个数字人专家从不同角度讨论推演。</p>
+          <ul class="pattern-features">
+            <li>角色分工：摘要Agent + 预测Agent + 校验Agent</li>
+            <li>协同推理：Agent间信息传递与校验</li>
+            <li>编排可视化：拖拽定义协作关系</li>
+          </ul>
+          <div style="margin-top:12px"><span class="tag tag-cyan">光粒圆桌会议</span><span class="tag tag-cyan">MetaGPT</span></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px">
+        <h3>四种形态对比</h3>
+        <table class="tbl">
+          <tr><th>形态</th><th>人参与度</th><th>Agent自主性</th><th>典型场景</th><th>技术复杂度</th></tr>
+          <tr><td><strong>副驾驶</strong></td><td>高（人主导）</td><td>低（建议为主）</td><td>文档撰写、数据查询、邮件起草</td><td>★★☆</td></tr>
+          <tr><td><strong>嵌入式</strong></td><td>中（流程触发）</td><td>中（节点执行）</td><td>审批摘要、合规校验、风险预测</td><td>★★★</td></tr>
+          <tr><td><strong>自主Agent</strong></td><td>低（目标驱动）</td><td>高（自主规划）</td><td>自动客服、数据报告、比价采购</td><td>★★★★</td></tr>
+          <tr><td><strong>多Agent协作</strong></td><td>低（设定角色）</td><td>最高（群体智能）</td><td>战略推演、复杂决策、多维分析</td><td>★★★★★</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== Section 3: Interaction Forms ===== -->
+    <div class="section" id="interaction">
+      <div class="section-title">03 · 六大交互形式与页面示例</div>
+      <p class="section-desc">每种交互形式配有高保真页面 Mockup，展示 Agent 如何在业务界面中呈现与操作</p>
+
+      <!-- Form 1: Sidebar Copilot -->
+      <h3>3.1 侧边栏对话助手（Sidebar Copilot）</h3>
+      <p>这是目前<strong>最主流的形态</strong>。用户在业务页面操作时，右侧常驻一个对话面板。Agent 可感知当前页面上下文，用户随时提问或请求生成。代表产品：Microsoft Copilot、钉钉AI、飞书智能伙伴。</p>
+      <div class="card">
+        <div class="mockup-label">页面示例：合同审批页 + 右侧AI副驾驶</div>
+        <div class="mockup" style="margin-top:8px">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background:#ff5f57"></div>
+            <div class="mockup-dot" style="background:#febc2e"></div>
+            <div class="mockup-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#64748b;margin-left:8px">合同审批系统 > 合同详情</span>
+          </div>
+          <div style="display:flex;min-height:340px">
+            <!-- Left: Business page -->
+            <div style="flex:1;padding:20px;background:#fff;border-right:1px solid #e2e8f0">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <span style="font-size:16px;font-weight:700;color:#0f172a">合同审批 · BAIC-2026-0815</span>
+                <span style="font-size:11px;padding:3px 10px;border-radius:12px;background:#fef3c7;color:#92400e">待审批</span>
+              </div>
+              <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:12px">
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同名称</div>
+                <div style="font-size:14px;font-weight:500;color:#1e293b">极狐T1营销推广服务采购合同</div>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:12px">
+                <div style="flex:1;background:#f8fafc;border-radius:8px;padding:12px">
+                  <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同金额</div>
+                  <div style="font-size:18px;font-weight:700;color:#2563eb">¥ 2,850,000</div>
+                </div>
+                <div style="flex:1;background:#f8fafc;border-radius:8px;padding:12px">
+                  <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">签约方</div>
+                  <div style="font-size:14px;font-weight:500;color:#1e293b">北京蓝标传媒</div>
+                </div>
+              </div>
+              <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:16px">
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同附件</div>
+                <div style="font-size:13px;color:#2563eb">📎 极狐T1推广合同_v3.pdf</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <span class="mini-btn mini-btn-primary">✓ 通过</span>
+                <span class="mini-btn mini-btn-ghost">✗ 驳回</span>
+                <span class="mini-btn mini-btn-ghost">💬 问AI</span>
+              </div>
+            </div>
+            <!-- Right: AI Copilot sidebar -->
+            <div style="width:280px;background:#fafbfc;display:flex;flex-direction:column">
+              <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px">
+                <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">AI</div>
+                <span style="font-size:13px;font-weight:600;color:#1e293b">合同审批助手</span>
+                <span style="font-size:10px;padding:2px 6px;border-radius:8px;background:#dbeafe;color:#2563eb">Agent</span>
+              </div>
+              <div style="flex:1;padding:16px;overflow-y:auto">
+                <div class="mini-chat ai">
+                  <strong>📄 智能摘要</strong><br>已读取合同内容。金额285万，属于大额合同，需总监级审批。签约方"北京蓝标"为长期供应商，信用良好。
+                </div>
+                <div class="mini-chat ai">
+                  <strong>⚠️ 风险提示</strong><br>第7.2条款违约金比例偏高(合同额20%)，建议谈判降至10%。同类合同行业平均为8-12%。
+                </div>
+                <div class="mini-chat ai">
+                  <strong>💡 审批建议</strong><br>
+                  <div style="margin-top:6px">
+                    <span class="mini-btn mini-btn-primary" style="font-size:10px">采纳建议</span>
+                  </div>
+                </div>
+                <div class="mini-chat user">帮我生成审批意见</div>
+                <div class="mini-chat ai" style="font-size:11px">
+                  同意审批。建议附注：请供应商将违约金比例从20%调整为10%后签署。<br>
+                  <span class="mini-btn mini-btn-primary" style="font-size:10px;margin-top:4px">填入审批意见</span>
+                </div>
+              </div>
+              <div style="padding:12px 16px;border-top:1px solid #e2e8f0">
+                <div style="background:#f1f5f9;border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8">输入消息或指令...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">图：左侧业务页面展示合同详情，右侧AI副驾驶实时分析合同内容、生成摘要、提示风险、建议审批意见。用户可一键采纳。</div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">交互特点</div>
+        <ul style="margin:0">
+          <li><strong>上下文感知</strong>：Agent 自动读取当前页面合同内容，无需用户手动输入</li>
+          <li><strong>操作嵌入</strong>：AI建议可直接"填入"业务表单（如审批意见框），而非仅展示在聊天中</li>
+          <li><strong>人机协同</strong>：Agent 给出建议，人决定是否采纳，最终操作权在人</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Form 2: Embedded Panel -->
+      <h3>3.2 内嵌操作面板（Embedded Panel）</h3>
+      <p>Agent 不以对话形式出现，而是作为业务页面中的一个<strong>功能区块</strong>。如在数据分析页面中嵌入"智能洞察"面板，自动生成分析结论。代表产品：Salesforce Einstein Analytics、Tableau Pulse。</p>
+      <div class="card">
+        <div class="mockup-label">页面示例：营销数据看板 + AI洞察面板</div>
+        <div class="mockup" style="margin-top:8px">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background:#ff5f57"></div>
+            <div class="mockup-dot" style="background:#febc2e"></div>
+            <div class="mockup-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#64748b;margin-left:8px">SCRM > 营销数据看板</span>
+          </div>
+          <div style="padding:20px;background:#fff;min-height:280px">
+            <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:16px">极狐T1 销售数据概览</div>
+            <div style="display:flex;gap:12px;margin-bottom:16px">
+              <div style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:#94a3b8">月销量</div>
+                <div style="font-size:22px;font-weight:700;color:#0f172a">3,247 <span style="font-size:12px;color:#10b981">↑12%</span></div>
+              </div>
+              <div style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:#94a3b8">线索转化率</div>
+                <div style="font-size:22px;font-weight:700;color:#0f172a">28.5% <span style="font-size:12px;color:#ef4444">↓3%</span></div>
+              </div>
+              <div style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:14px">
+                <div style="font-size:11px;color:#94a3b8">客户满意度</div>
+                <div style="font-size:22px;font-weight:700;color:#0f172a">4.6 <span style="font-size:12px;color:#10b981">↑0.2</span></div>
+              </div>
+            </div>
+            <!-- AI Insight Panel -->
+            <div style="border:2px solid #3b82f6;border-radius:10px;padding:16px;background:linear-gradient(135deg,#eff6ff,#f0fdf4)">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">AI</div>
+                <span style="font-size:14px;font-weight:700;color:#1e293b">AI 智能洞察</span>
+                <span style="font-size:10px;padding:2px 8px;border-radius:8px;background:#dbeafe;color:#2563eb">实时分析</span>
+              </div>
+              <div style="font-size:13px;color:#334155;line-height:1.8">
+                <strong style="color:#ef4444">⚠ 异常发现：</strong>线索转化率下降3%，主要原因是华东区线索质量下降。<br>
+                <strong style="color:#10b981">✓ 优势保持：</strong>月销量增长12%，华北区表现突出，极狐T1关注度高。<br>
+                <strong style="color:#2563eb">💡 建议行动：</strong>建议对华东线索重新筛选，同时加大华北区投放预算。
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <span class="mini-btn mini-btn-primary">生成详细报告</span>
+                <span class="mini-btn mini-btn-ghost">查看历史趋势</span>
+                <span class="mini-btn mini-btn-ghost">推送到待办</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">图：AI洞察面板直接嵌入数据看板，自动分析异常并给出行动建议。用户可直接点击按钮触发后续操作。</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Form 3: Floating Entry -->
+      <h3>3.3 全局浮动入口（Floating Assistant）</h3>
+      <p>在任意业务页面右下角放置一个<strong>悬浮AI按钮</strong>，点击展开对话面板。不占用页面空间，随时可用，随时收起。代表产品：光粒平台数字人、Intercom Fin。</p>
+      <div class="card">
+        <div class="mockup-label">页面示例：任意业务页 + 浮动AI助手</div>
+        <div class="mockup" style="margin-top:8px;position:relative">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background:#ff5f57"></div>
+            <div class="mockup-dot" style="background:#febc2e"></div>
+            <div class="mockup-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#64748b;margin-left:8px">工作台 > SCRM</span>
+          </div>
+          <div style="padding:20px;background:#fff;min-height:280px;position:relative">
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <span class="mini-btn mini-btn-ghost" style="background:#e2e8f0;color:#475569">客户管理</span>
+              <span class="mini-btn mini-btn-ghost" style="background:#e2e8f0;color:#475569">线索池</span>
+              <span class="mini-btn mini-btn-ghost" style="background:#e2e8f0;color:#475569">商机管理</span>
+            </div>
+            <div style="font-size:13px;color:#94a3b8;text-align:center;padding:60px 0">业务页面内容区域...</div>
+            <!-- Floating AI drawer (expanded) -->
+            <div style="position:absolute;bottom:16px;right:16px;width:300px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e2e8f0;overflow:hidden">
+              <div style="padding:12px 16px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px">🤖</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:#fff">光粒AI助手</div>
+                    <div style="font-size:10px;color:rgba(255,255,255,.7)">在线 · 随时为您服务</div>
+                  </div>
+                </div>
+                <span style="color:#fff;font-size:16px;cursor:pointer">✕</span>
+              </div>
+              <div style="padding:14px;max-height:180px;overflow-y:auto">
+                <div class="mini-chat ai" style="font-size:11px">您好！我是光粒AI助手，可以帮您查询数据、分析客户、生成报告。请问有什么可以帮您？</div>
+                <div class="mini-chat user" style="font-size:11px">帮我查一下本月极狐T1的销量</div>
+                <div class="mini-chat ai" style="font-size:11px">本月极狐T1销量3,247台，环比增长12%，华北区占比最高(38%)。<br><span class="mini-btn mini-btn-primary" style="font-size:9px;margin-top:4px">查看详细分析</span></div>
+              </div>
+              <div style="padding:10px 14px;border-top:1px solid #f1f5f9">
+                <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8">输入您的问题...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">图：右下角浮动AI按钮已展开为对话面板，不侵入业务页面布局。关闭后回到小图标状态。</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Form 4: Workflow Node Agent -->
+      <h3>3.4 工作流节点 Agent（Workflow Node）</h3>
+      <p>Agent 作为审批流程中的一个<strong>自动节点</strong>嵌入。流程流转到该节点时，Agent 自动执行任务（如摘要生成、风险预测、合规校验），生成结果后流程继续。代表产品：光粒流程Agent审批助手、ServiceNow Now Assist。</p>
+      <div class="card">
+        <div class="mockup-label">页面示例：审批流程编排画布 + Agent节点</div>
+        <div class="mockup" style="margin-top:8px">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background:#ff5f57"></div>
+            <div class="mockup-dot" style="background:#febc2e"></div>
+            <div class="mockup-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#64748b;margin-left:8px">流程中心 > 流程设计 > 合同审批流程</span>
+          </div>
+          <div style="padding:24px;background:#fff;min-height:220px">
+            <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap">
+              <span class="mini-node start">▶ 发起</span>
+              <span style="color:#cbd5e1;margin:0 12px;font-size:18px">→</span>
+              <span class="mini-node ai">🤖 智能摘要<br><span style="font-size:9px;color:#8b5cf6">Agent · GPT-4o</span></span>
+              <span style="color:#cbd5e1;margin:0 12px;font-size:18px">→</span>
+              <span class="mini-node ai">⚠️ 合规校验<br><span style="font-size:9px;color:#8b5cf6">Agent · Claude</span></span>
+              <span style="color:#cbd5e1;margin:0 12px;font-size:18px">→</span>
+              <span class="mini-node" style="border-color:#3b82f6;background:#eff6ff;color:#2563eb">👤 部门经理<br><span style="font-size:9px">人工审批</span></span>
+              <span style="color:#cbd5e1;margin:0 12px;font-size:18px">→</span>
+              <span class="mini-node ai">📊 审批预测<br><span style="font-size:9px;color:#8b5cf6">Agent</span></span>
+              <span style="color:#cbd5e1;margin:0 12px;font-size:18px">→</span>
+              <span class="mini-node end">■ 结束</span>
+            </div>
+            <div style="margin-top:24px;background:#f5f3ff;border:1px solid #e9d5ff;border-radius:10px;padding:16px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:14px">🤖</span>
+                <span style="font-size:13px;font-weight:700;color:#6d28d9">Agent节点 · 智能摘要配置</span>
+              </div>
+              <div style="font-size:12px;color:#475569;line-height:1.8">
+                <strong>模型：</strong>GPT-4o &nbsp;|&nbsp; <strong>输入：</strong>合同附件全文<br>
+                <strong>输出：</strong>200字结构化摘要（文号/事由/关键要素/紧急程度）<br>
+                <strong>关联智能体：</strong>✓ 已关联智能体中心Agent<br>
+                <strong>执行方式：</strong>自动执行 → 结果写入流程变量 → 流转到下一节点
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">图：紫色Agent节点嵌入审批流程，自动执行摘要→校验→预测，人工节点负责最终决策。Agent结果可追溯。</div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">核心优势</div>
+        <ul style="margin:0">
+          <li><strong>无需人为触发</strong>：流程流转到Agent节点时自动执行，人不需要操作</li>
+          <li><strong>结果可追溯</strong>：Agent执行结果记录在流程实例中，审批人可查看Agent的分析过程</li>
+          <li><strong>混合编排</strong>：Agent节点和人工节点自由组合，灵活编排复杂流程</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Form 5: Smart Suggestion -->
+      <h3>3.5 智能推荐与自动补全（Inline AI）</h3>
+      <p>Agent 隐藏在业务表单和输入框背后，在用户填写时<strong>实时给出智能建议</strong>。如自动补全合同条款、推荐审批意见、智能填表。代表产品：Microsoft Dynamics Copilot、Notion AI。</p>
+      <div class="card">
+        <div class="mockup-label">页面示例：合同录入表单 + AI智能填充</div>
+        <div class="mockup" style="margin-top:8px">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background:#ff5f57"></div>
+            <div class="mockup-dot" style="background:#febc2e"></div>
+            <div class="mockup-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#64748b;margin-left:8px">合同审批系统 > 新建合同</span>
+          </div>
+          <div style="padding:20px;background:#fff;min-height:240px">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px">新建合同</div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同名称</div>
+              <input style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px" value="极狐T1营销推广服务采购合同" readonly>
+            </div>
+            <div style="display:flex;gap:12px;margin-bottom:12px">
+              <div style="flex:1">
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同金额（元）</div>
+                <div style="position:relative">
+                  <input style="width:100%;border:2px solid #3b82f6;border-radius:8px;padding:8px 12px;font-size:13px;background:#eff6ff" value="2,850,000" readonly>
+                  <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;padding:2px 6px;border-radius:4px;background:#dbeafe;color:#2563eb;font-weight:600">✨ AI已填充</span>
+                </div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同类型</div>
+                <select style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;background:#fff">
+                  <option>营销推广类 ✨AI推荐</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">合同条款</div>
+              <div style="border:2px solid #3b82f6;border-radius:8px;padding:12px;background:#eff6ff;font-size:12px;color:#334155;line-height:1.6">
+                <strong>✨ AI已生成标准条款模板：</strong><br>
+                第一条 合同标的：甲方向乙方采购极狐T1车型营销推广服务...<br>
+                第二条 合同金额：本合同总金额为人民币2,850,000元...<br>
+                <div style="margin-top:8px;display:flex;gap:8px">
+                  <span class="mini-btn mini-btn-primary">采纳</span>
+                  <span class="mini-btn mini-btn-ghost">重新生成</span>
+                  <span class="mini-btn mini-btn-ghost">手动编辑</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">图：用户输入合同名称后，AI自动推荐金额、合同类型，并生成标准条款模板。蓝色边框标识AI填充字段。</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Form 6: Conversational Interface -->
+      <h3>3.6 对话式主界面（Chat-First）</h3>
+      <p>整个业务界面以<strong>对话为核心</strong>。用户通过自然语言描述需求，Agent 理解意图后调用业务系统API完成操作。适合Agent平台和低代码场景。代表产品：Coze、Dify、百度文心智能体。</p>
+      <div class="card">
+        <div class="mockup-label">页面示例：Coze风格 Agent 对话主界面</div>
+        <div class="mockup" style="margin-top:8px">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background:#ff5f57"></div>
+            <div class="mockup-dot" style="background:#febc2e"></div>
+            <div class="mockup-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#64748b;margin-left:8px">智能体中心 > 极狐T1销售顾问</span>
+          </div>
+          <div style="display:flex;min-height:280px">
+            <!-- Left: Agent config -->
+            <div style="width:180px;background:#f8fafc;padding:14px;border-right:1px solid #e2e8f0">
+              <div style="text-align:center;margin-bottom:12px">
+                <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#06b6d4);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff">🤖</div>
+                <div style="font-size:13px;font-weight:600;color:#1e293b">极狐T1销售顾问</div>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:6px">已配置工具</div>
+              <div style="font-size:11px;color:#475569;padding:4px 0">📋 产品知识库</div>
+              <div style="font-size:11px;color:#475569;padding:4px 0">💰 价格查询API</div>
+              <div style="font-size:11px;color:#475569;padding:4px 0">📅 试驾预约</div>
+              <div style="font-size:11px;color:#475569;padding:4px 0">📊 销量数据</div>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0">
+                <span style="font-size:10px;padding:2px 8px;border-radius:8px;background:#dcfce7;color:#16a34a">● 运行中</span>
+              </div>
+            </div>
+            <!-- Right: Chat -->
+            <div style="flex:1;display:flex;flex-direction:column;background:#fff">
+              <div style="flex:1;padding:16px;overflow-y:auto">
+                <div class="mini-chat user">极狐T1顶配版多少钱？有什么优惠？</div>
+                <div class="mini-chat ai">
+                  极狐T1顶配版指导价<strong>18.98万元</strong>，当前优惠：<br>
+                  1. 置换补贴：5,000元<br>
+                  2. 金融贴息：3,000元<br>
+                  3. 综合优惠后：<strong>18.18万元</strong><br><br>
+                  <div style="display:flex;gap:8px">
+                    <span class="mini-btn mini-btn-primary">预约试驾</span>
+                    <span class="mini-btn mini-btn-ghost">查看配置详情</span>
+                  </div>
+                </div>
+                <div class="mini-chat user">帮我预约下周三的试驾</div>
+                <div class="mini-chat ai">
+                  ✅ 已调用「试驾预约」工具<br>
+                  已为您预约<strong>8月27日（周三）14:00</strong>，地点：北京朝阳极狐体验中心。<br>
+                  预约确认码：<code>TD-20260827-001</code>
+                </div>
+              </div>
+              <div style="padding:12px 16px;border-top:1px solid #e2e8f0">
+                <div style="display:flex;gap:8px">
+                  <div style="flex:1;background:#f8fafc;border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8">输入消息...</div>
+                  <span class="mini-btn mini-btn-primary">发送</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">图：左侧Agent配置面板（已绑定的工具/API），右侧对话交互区。Agent调用业务工具完成预约操作。</div>
+      </div>
+    </div>
+
+    <!-- ===== Section 4: Business Flows ===== -->
+    <div class="section" id="flow">
+      <div class="section-title">04 · Agent 驱动的业务操作流程</div>
+      <p class="section-desc">五大典型业务场景中 Agent 如何嵌入并改变传统操作流程</p>
+
+      <!-- Flow 1: Approval -->
+      <div class="card">
+        <h3>4.1 Agent + 审批流程</h3>
+        <p>传统审批流程中，审批人需逐条阅读合同/申请内容、人工判断风险。Agent嵌入后，<strong>自动完成摘要生成、风险预审、流转方向预测</strong>，审批人只需看Agent结论即可快速决策。</p>
+        <div class="card-grid">
+          <div>
+            <div class="mockup-label">传统流程</div>
+            <div class="flow-step"><div class="flow-num" style="background:#475569;color:#94a3b8">1</div><div class="flow-content"><div class="flow-title">申请人提交</div><div class="flow-desc">填写表单、上传附件</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num" style="background:#475569;color:#94a3b8">2</div><div class="flow-content"><div class="flow-title">人工逐条审阅</div><div class="flow-desc">审批人阅读全文，耗时10-30分钟</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num" style="background:#475569;color:#94a3b8">3</div><div class="flow-content"><div class="flow-title">人工判断风险</div><div class="flow-desc">凭经验判断，容易遗漏</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num" style="background:#475569;color:#94a3b8">4</div><div class="flow-content"><div class="flow-title">填写审批意见</div><div class="flow-desc">手动输入</div></div></div>
+          </div>
+          <div>
+            <div class="mockup-label">Agent增强流程</div>
+            <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">申请人提交</div><div class="flow-desc">填写表单、上传附件</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">2</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 Agent自动摘要</div><div class="flow-desc">生成200字结构化摘要+要件预审</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">3</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 Agent合规校验</div><div class="flow-desc">条款偏差+征信查询+风险评分</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><div class="flow-title">审批人查看Agent结论</div><div class="flow-desc">看摘要+风险分，3分钟决策</div></div></div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><div class="flow-title">一键填入AI建议</div><div class="flow-desc">Agent自动生成审批意见</div></div></div>
+          </div>
+        </div>
+        <div class="callout">
+          <div class="callout-title">效率提升</div>
+          <p style="margin:0">单笔审批从平均 <strong>20分钟 → 3分钟</strong>，风险识别覆盖率从60%提升至95%。</p>
+        </div>
+      </div>
+
+      <!-- Flow 2: Data Analysis -->
+      <div class="card">
+        <h3>4.2 Agent + 数据分析</h3>
+        <p>传统数据分析需用户自行查询数据、制作图表、撰写结论。Agent介入后，用户<strong>用自然语言提问</strong>，Agent自动查询数据、生成图表、输出分析报告。</p>
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">用户提问</div><div class="flow-desc">"帮我分析极狐T1华东区销量下降原因"</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">2</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 Agent理解意图</div><div class="flow-desc">解析为SQL查询：维度=区域/月度，指标=销量/线索/转化率</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">3</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 Agent调用数据API</div><div class="flow-desc">查询SCRM系统数据，获取近6个月华东区数据</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">4</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 Agent生成图表+分析</div><div class="flow-desc">自动生成趋势图、归因分析、对比报告</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><div class="flow-title">用户查看报告</div><div class="flow-desc">可视化图表+文字结论+行动建议，可导出/分享/推送到待办</div></div></div>
+        <div class="callout">
+          <div class="callout-title">价值</div>
+          <p style="margin:0">从"需要分析师"到"人人是分析师"，分析周期从<strong>2小时 → 30秒</strong>。</p>
+        </div>
+      </div>
+
+      <!-- Flow 3: Customer Service -->
+      <div class="card">
+        <h3>4.3 Agent + 客户服务</h3>
+        <p>Agent 作为<strong>一线客服</strong>，自动识别客户意图、查询业务系统、回复咨询、处理工单。复杂问题自动升级到人工。</p>
+        <div style="display:flex;gap:0;align-items:center;justify-content:center;flex-wrap:wrap;margin:16px 0">
+          <div style="text-align:center;padding:12px 20px;border:2px solid #10b981;border-radius:10px;background:#f0fdf4">
+            <div style="font-size:24px">💬</div><div style="font-size:12px;font-weight:600;color:#047857;margin-top:4px">客户提问</div>
+          </div>
+          <span style="font-size:18px;color:#cbd5e1;margin:0 8px">→</span>
+          <div style="text-align:center;padding:12px 20px;border:2px solid #8b5cf6;border-radius:10px;background:#f5f3ff">
+            <div style="font-size:24px">🤖</div><div style="font-size:12px;font-weight:600;color:#6d28d9;margin-top:4px">Agent意图识别</div>
+          </div>
+          <span style="font-size:18px;color:#cbd5e1;margin:0 8px">→</span>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="text-align:center;padding:10px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">
+              <div style="font-size:12px;font-weight:600;color:#2563eb">✅ 自动回复<br><span style="font-size:10px">80%问题</span></div>
+            </div>
+            <div style="text-align:center;padding:10px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">
+              <div style="font-size:12px;font-weight:600;color:#f59e0b">⚠️ 升级人工<br><span style="font-size:10px">20%复杂问题</span></div>
+            </div>
+          </div>
+        </div>
+        <table class="tbl">
+          <tr><th>环节</th><th>传统方式</th><th>Agent方式</th></tr>
+          <tr><td>意图识别</td><td>关键词匹配（准确率60%）</td><td>大模型理解（准确率95%）</td></tr>
+          <tr><td>数据查询</td><td>客服手动查系统</td><td>Agent自动调API</td></tr>
+          <tr><td>响应速度</td><td>平均3分钟</td><td>实时（<3秒）</td></tr>
+          <tr><td>7×24服务</td><td>需排班</td><td>全自动</td></tr>
+        </table>
+      </div>
+
+      <!-- Flow 4: Marketing -->
+      <div class="card">
+        <h3>4.4 Agent + 营销运营</h3>
+        <p>Agent 深入营销流程：自动分析线索质量、推荐跟进策略、生成营销文案、智能分群投放。</p>
+        <div class="card-grid-3">
+          <div class="pattern-card" style="padding:20px">
+            <div class="pattern-title" style="font-size:14px">🎯 智能线索评分</div>
+            <p class="pattern-desc">Agent自动分析线索行为数据，给出质量评分和跟进优先级</p>
+          </div>
+          <div class="pattern-card" style="padding:20px">
+            <div class="pattern-title" style="font-size:14px">✍️ 营销文案生成</div>
+            <p class="pattern-desc">输入产品特点+目标人群，Agent自动生成多版本文案A/B测试</p>
+          </div>
+          <div class="pattern-card" style="padding:20px">
+            <div class="pattern-title" style="font-size:14px">👥 客户智能分群</div>
+            <p class="pattern-desc">Agent分析客户标签+行为，自动分群并推荐差异化触达策略</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 5: Document -->
+      <div class="card">
+        <h3>4.5 Agent + 合同/文档处理</h3>
+        <p>Agent 自动提取合同关键条款、比对模板偏差、标注风险点、生成审批摘要。</p>
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">上传合同</div><div class="flow-desc">PDF/Word/扫描件</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">2</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 OCR + 结构化提取</div><div class="flow-desc">提取金额、签约方、条款、期限等关键要素</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num" style="background:#8b5cf6;color:#ddd6fe">3</div><div class="flow-content"><div class="flow-title" style="color:#a78bfa">🤖 模板比对 + 风险标注</div><div class="flow-desc">与标准模板逐条比对，高亮偏差条款，评分风险等级</div></div></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><div class="flow-title">输出审查报告</div><div class="flow-desc">结构化报告：摘要 + 关键条款 + 风险评分 + 修改建议</div></div></div>
+      </div>
+    </div>
+
+    <!-- ===== Section 5: Market Cases ===== -->
+    <div class="section" id="cases">
+      <div class="section-title">05 · 市场代表案例分析</div>
+      <p class="section-desc">8个代表性产品的 Agent 融合方案拆解</p>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(event,'case-ms')">Microsoft</div>
+        <div class="tab" onclick="switchTab(event,'case-sf')">Salesforce</div>
+        <div class="tab" onclick="switchTab(event,'case-sn')">ServiceNow</div>
+        <div class="tab" onclick="switchTab(event,'case-dt')">钉钉/飞书</div>
+        <div class="tab" onclick="switchTab(event,'case-coze')">Coze/Dify</div>
+        <div class="tab" onclick="switchTab(event,'case-bd')">百度/用友</div>
+      </div>
+
+      <!-- Case: Microsoft -->
+      <div class="tab-content active" id="case-ms">
+        <div class="card">
+          <h3>Microsoft Copilot — 企业Agent融合的标杆</h3>
+          <div style="margin-bottom:12px">
+            <span class="tag tag-blue">副驾驶模式</span><span class="tag tag-purple">嵌入式</span><span class="tag tag-green">多Agent</span>
+          </div>
+          <table class="tbl">
+            <tr><th style="width:140px">产品</th><th>Agent融合方式</th></tr>
+            <tr><td><strong>M365 Copilot</strong></td><td>嵌入Word/Excel/PPT/Outlook，侧边栏对话式。可读取文档上下文，生成摘要、改写、翻译</td></tr>
+            <tr><td><strong>Dynamics 365 Copilot</strong></td><td>嵌入CRM/ERP。自动生成销售话术、客户邮件、商机分析。Agent可直接更新CRM记录</td></tr>
+            <tr><td><strong>Copilot Studio</strong></td><td>低代码构建自定义Agent。可视化编排Agent技能（调用API、知识库、Power Automate流程）</td></tr>
+            <tr><td><strong>Security Copilot</strong></td><td>安全运营Agent，自动分析告警、生成调查报告、推荐响应措施</td></tr>
+          </table>
+          <div class="callout">
+            <div class="callout-title">关键设计亮点</div>
+            <ul style="margin:0">
+              <li><strong>上下文感知</strong>：Copilot 自动读取当前打开的文档/记录，无需用户复制粘贴</li>
+              <li><strong>Graph-grounded</strong>：基于 Microsoft Graph 连接邮件、文件、日历、聊天数据，Agent 可跨应用调用上下文</li>
+              <li><strong>Copilot Studio 编排</strong>：企业可自定义 Agent 技能链——"理解意图 → 调用API → 格式化输出 → 写入系统"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case: Salesforce -->
+      <div class="tab-content" id="case-sf">
+        <div class="card">
+          <h3>Salesforce Einstein Copilot — CRM原生的Agent融合</h3>
+          <div style="margin-bottom:12px">
+            <span class="tag tag-blue">副驾驶</span><span class="tag tag-orange">自主Agent</span><span class="tag tag-cyan">Data Cloud</span>
+          </div>
+          <table class="tbl">
+            <tr><th style="width:140px">能力</th><th>说明</th></tr>
+            <tr><td><strong>Einstein Copilot</strong></td><td>嵌入Sales Cloud侧边栏。可自动生成客户跟进邮件、总结会议纪要、更新商机阶段</td></tr>
+            <tr><td><strong>Agentforce</strong></td><td>自主Agent平台。企业可构建可自主行动的Agent，如"自动处理退货工单"——Agent查询订单、校验退货政策、创建退款单、通知客户</td></tr>
+            <tr><td><strong>Data Cloud驱动</strong></td><td>Agent基于Data Cloud中的客户360数据，可查询客户全生命周期数据</td></tr>
+            <tr><td><strong>Trust Layer</strong></td><td>安全层：Agent操作需符合权限，敏感数据不送出模型，操作日志可审计</td></tr>
+          </table>
+          <div class="callout">
+            <div class="callout-title">关键设计亮点</div>
+            <ul style="margin:0">
+              <li><strong>Agent可直接写入CRM</strong>：不是只聊天，而是可直接更新商机状态、创建任务、发送邮件</li>
+              <li><strong>可信执行</strong>：所有Agent操作有权限校验+审计日志，企业可控</li>
+              <li><strong>低代码构建</strong>：用Prompt Builder + Agent Builder，无需代码即可构建业务Agent</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case: ServiceNow -->
+      <div class="tab-content" id="case-sn">
+        <div class="card">
+          <h3>ServiceNow Now Assist — 流程级Agent融合的典范</h3>
+          <div style="margin-bottom:12px">
+            <span class="tag tag-purple">流程节点</span><span class="tag tag-blue">副驾驶</span><span class="tag tag-green">自动化</span>
+          </div>
+          <table class="tbl">
+            <tr><th style="width:140px">场景</th><th>Agent融合方式</th></tr>
+            <tr><td><strong>ITSM工单</strong></td><td>Agent自动分类工单、生成解决方案建议、路由到正确的处理团队</td></tr>
+            <tr><td><strong>HR服务</strong></td><td>员工通过Agent查询政策、提交请假/报销，Agent自动创建审批流程</td></tr>
+            <tr><td><strong>CSM客户服务</strong></td><td>Agent读取工单历史+知识库，自动生成回复草稿，客服人员审核后发送</td></tr>
+            <tr><td><strong>流程编排</strong></td><td>Agent作为流程节点嵌入Workflow，自动执行"分类→路由→知识检索→回复建议"</td></tr>
+          </table>
+          <div class="callout">
+            <div class="callout-title">关键设计亮点</div>
+            <ul style="margin:0">
+              <li><strong>Agent = 流程节点</strong>：Now Assist 的核心价值在于Agent嵌入Workflow而非独立存在——这是最接近光粒平台流程Agent的模式</li>
+              <li><strong>知识库驱动</strong>：Agent基于ServiceNow Knowledge Base回答，避免幻觉</li>
+              <li><strong>操作可追溯</strong>：Agent执行的所有操作记录在流程实例中，审计可查</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case: 钉钉/飞书 -->
+      <div class="tab-content" id="case-dt">
+        <div class="card">
+          <h3>钉钉AI助理 & 飞书智能伙伴 — 协同办公Agent融合</h3>
+          <div style="margin-bottom:12px">
+            <span class="tag tag-blue">副驾驶</span><span class="tag tag-purple">嵌入式</span><span class="tag tag-orange">多Agent</span>
+          </div>
+          <h4>钉钉AI助理</h4>
+          <table class="tbl">
+            <tr><th style="width:140px">能力</th><th>说明</th></tr>
+            <tr><td><strong>对话式助理</strong></td><td>侧边栏对话，可总结群聊、生成待办、起草消息</td></tr>
+            <tr><td><strong>AI助理市场</strong></td><td>企业可发布自定义AI助理，绑定OA审批、CRM查询等业务能力</td></tr>
+            <tr><td><strong>魔法棒</strong></td><td>在文档/表格中内嵌AI，一键生成/润色/总结</td></tr>
+          </table>
+          <h4>飞书智能伙伴</h4>
+          <table class="tbl">
+            <tr><th style="width:140px">能力</th><th>说明</th></tr>
+            <tr><td><strong>多维表格AI</strong></td><td>在多维表格中用自然语言操作数据，AI自动生成公式、分类、摘要</td></tr>
+            <tr><td><strong>知识问答</strong></td><td>基于飞书文档库构建知识库，员工对话式查询公司知识</td></tr>
+            <tr><td><strong>智能伙伴编排</strong></td><td>可视化配置Agent技能（调用飞书API、外部系统），无需代码</td></tr>
+          </table>
+          <div class="callout">
+            <div class="callout-title">对光粒的参考价值</div>
+            <p style="margin:0">钉钉和飞书的Agent融合基于"协同办公"场景，与光粒平台的"企业业务平台"定位高度吻合。其"AI助理市场"和"智能伙伴编排"的设计值得借鉴——平台提供Agent编排能力，各业务应用自行配置。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case: Coze/Dify -->
+      <div class="tab-content" id="case-coze">
+        <div class="card">
+          <h3>Coze（扣子） & Dify — Agent构建平台</h3>
+          <div style="margin-bottom:12px">
+            <span class="tag tag-green">自主Agent</span><span class="tag tag-orange">多Agent</span><span class="tag tag-cyan">低代码编排</span>
+          </div>
+          <h4>Coze（字节跳动）</h4>
+          <table class="tbl">
+            <tr><th style="width:140px">能力</th><th>说明</th></tr>
+            <tr><td><strong>Bot构建</strong></td><td>可视化构建对话Bot，配置人设、技能、知识库、工作流</td></tr>
+            <tr><td><strong>Plugin/工具调用</strong></td><td>Bot可调用外部API插件（天气、搜索、数据库查询等）</td></tr>
+            <tr><td><strong>工作流编排</strong></td><td>拖拽式编排多步骤任务：LLM节点 + 代码节点 + API节点 + 条件分支</td></tr>
+            <tr><td><strong>多Bot协作</strong></td><td>多个Bot可组合为Multi-Agent，各Bot负责不同子任务</td></tr>
+            <tr><td><strong>多渠道发布</strong></td><td>Bot可发布到飞书、微信、抖音、网页等渠道</td></tr>
+          </table>
+          <h4>Dify（开源）</h4>
+          <table class="tbl">
+            <tr><th style="width:140px">能力</th><th>说明</th></tr>
+            <tr><td><strong>LLM应用编排</strong></td><td>构建Chatbot / Agent / Workflow三种应用类型</td></tr>
+            <tr><td><strong>Agent模式</strong></td><td>支持Function Calling / ReAct两种Agent推理模式，可调用自定义工具</td></tr>
+            <tr><td><strong>RAG引擎</strong></td><td>内置文档向量化+检索增强生成，支持多种向量数据库</td></tr>
+            <tr><td><strong>企业级部署</strong></td><td>支持私有化部署，API开放，可嵌入企业系统</td></tr>
+          </table>
+          <div class="callout">
+            <div class="callout-title">对光粒的参考价值</div>
+            <p style="margin:0">Coze和Dify的<strong>工作流编排</strong>（LLM节点+API节点+条件分支+代码节点）与光粒平台的"流程设计+Agent节点"设计思路一致。Coze的多Bot协作和Dify的RAG引擎可作为光粒智能体中心的技术参考。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case: 百度/用友 -->
+      <div class="tab-content" id="case-bd">
+        <div class="card">
+          <h3>百度文心智能体 & 用友YonGPT — 国内企业Agent方案</h3>
+          <div style="margin-bottom:12px">
+            <span class="tag tag-blue">副驾驶</span><span class="tag tag-purple">嵌入式</span><span class="tag tag-green">自主Agent</span>
+          </div>
+          <h4>百度文心智能体平台</h4>
+          <ul>
+            <li><strong>零代码构建</strong>：自然语言描述即可创建智能体，自动配置人设、技能、知识库</li>
+            <li><strong>百度生态分发</strong>：智能体可发布到百度搜索、文心一言App、贴吧等渠道</li>
+            <li><strong>组件化能力</strong>：内置数据洞察、插件调用、工作流编排等组件</li>
+          </ul>
+          <h4>用友 YonGPT</h4>
+          <ul>
+            <li><strong>企业级Agent</strong>：嵌入用友BIP ERP/财务/HR系统，覆盖企业全业务流程</li>
+            <li><strong>智能助理</strong>：自然语言查询财务数据、生成报表、智能报账、合同审查</li>
+            <li><strong>数智员工</strong>：可自主执行完整业务流程的Agent"数字员工"，如自动对账、自动报税</li>
+            <li><strong>多Agent协同</strong>：财务Agent + 采购Agent + 销售Agent协同处理跨部门流程</li>
+          </ul>
+          <div class="callout">
+            <div class="callout-title">对光粒的参考价值</div>
+            <p style="margin:0">用友YonGPT的<strong>"数智员工"</strong>概念与光粒平台的"数字人专家"高度吻合——都是将Agent定位为具备岗位能力的"数字员工"，而非简单的聊天机器人。其多Agent协同处理跨部门流程的设计也值得参考。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Section 6: Recommendations ===== -->
+    <div class="section" id="recommendation">
+      <div class="section-title">06 · 对光粒平台的落地建议</div>
+      <p class="section-desc">基于市场调研，给出光粒平台 Agent 融合业务的产品演进路径</p>
+
+      <div class="card">
+        <h3>核心建议：Agent 融合的三层架构</h3>
+        <div class="card-grid-3">
+          <div class="pattern-card" style="padding:20px">
+            <div class="pattern-icon" style="background:rgba(59,130,246,.12);color:#3b82f6;font-size:18px">L1</div>
+            <div class="pattern-title" style="font-size:15px">交互层</div>
+            <p class="pattern-desc">提供多种Agent入口形态，适配不同业务场景</p>
+            <ul class="pattern-features">
+              <li>侧边栏Copilot（审批/合同场景）</li>
+              <li>浮动AI助手（全局场景）</li>
+              <li>对话主界面（智能体中心）</li>
+              <li>内嵌面板（数据分析场景）</li>
+            </ul>
+          </div>
+          <div class="pattern-card" style="padding:20px">
+            <div class="pattern-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;font-size:18px">L2</div>
+            <div class="pattern-title" style="font-size:15px">编排层</div>
+            <p class="pattern-desc">将Agent编入业务流程，实现流程级融合</p>
+            <ul class="pattern-features">
+              <li>流程设计画布 + Agent节点</li>
+              <li>Agent节点绑定智能体中心Agent</li>
+              <li>Agent结果写入流程变量</li>
+              <li>人工节点 + Agent节点混合编排</li>
+            </ul>
+          </div>
+          <div class="pattern-card" style="padding:20px">
+            <div class="pattern-icon" style="background:rgba(16,185,129,.12);color:#10b981;font-size:18px">L3</div>
+            <div class="pattern-title" style="font-size:15px">能力层</div>
+            <p class="pattern-desc">智能体中心提供Agent能力供给</p>
+            <ul class="pattern-features">
+              <li>智能体管理（增删改查+编排）</li>
+              <li>MCP管理（工具/API调用）</li>
+              <li>SKILL管理（技能配置）</li>
+              <li>知识库管理（RAG向量化）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>分阶段落地路径</h3>
+        <table class="tbl">
+          <tr><th style="width:120px">阶段</th><th>目标</th><th>关键动作</th></tr>
+          <tr>
+            <td><strong>V1.0 当前</strong></td>
+            <td>Agent能力供给 + 流程编排基础</td>
+            <td>智能体中心（Agent/MCP/Skill/知识库管理）、流程中心（流程设计画布+Agent节点）、应用中心</td>
+          </tr>
+          <tr>
+            <td><strong>V1.5 近期</strong></td>
+            <td>Agent融入业务交互</td>
+            <td>在工作台页面接入侧边栏Copilot和浮动AI助手；Agent可读取页面上下文并建议操作；审批流中Agent节点可实际执行</td>
+          </tr>
+          <tr>
+            <td><strong>V2.0 中期</strong></td>
+            <td>Agent深度融入业务流程</td>
+            <td>Agent可直接写入业务系统（CRM/ERP）；多Agent协作处理跨部门流程；Agent审批助手覆盖全审批场景；数据分析Agent支持自然语言查询</td>
+          </tr>
+          <tr>
+            <td><strong>V3.0 远期</strong></td>
+            <td>Agent驱动的自主业务</td>
+            <td>数智员工（自主Agent）承担重复性业务；圆桌会议多Agent推演辅助决策；Agent编排可视化覆盖全业务流程</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-title">⚠️ 关键风险提示</div>
+        <ul style="margin:0">
+          <li><strong>可控性</strong>：Agent自动操作必须有权限校验+操作日志+人工确认环节，不能让Agent无约束地修改业务数据</li>
+          <li><strong>幻觉控制</strong>：Agent建议应基于知识库/数据（RAG），而非纯生成；高风险结论必须标注来源</li>
+          <li><strong>渐进式</strong>：从"建议优先"（人决定）到"自动执行"（Agent决定）分步推进，先积累信任</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>市场方案对照总结</h3>
+        <table class="tbl">
+          <tr><th>产品</th><th>核心形态</th><th>与光粒的对应</th></tr>
+          <tr><td>Microsoft Copilot</td><td>副驾驶 + Graph上下文</td><td>工作台侧边栏Copilot</td></tr>
+          <tr><td>Salesforce Einstein</td><td>Agent可写入CRM + 信任层</td><td>Agent节点 + 权限校验</td></tr>
+          <tr><td>ServiceNow Now Assist</td><td>Agent = 流程节点</td><td>流程设计Agent节点 ← <strong>高度对应</strong></td></tr>
+          <tr><td>钉钉AI / 飞书智能伙伴</td><td>协同办公 + Agent市场</td><td>智能体中心 + 应用绑定</td></tr>
+          <tr><td>Coze / Dify</td><td>低代码Agent编排 + RAG</td><td>智能体中心编排 ← <strong>技术参考</strong></td></tr>
+          <tr><td>用友 YonGPT</td><td>数智员工 + 多Agent协同</td><td>数字人专家 + 圆桌会议 ← <strong>概念对应</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;padding:48px 0 0;border-top:1px solid var(--border);color:var(--text-dim);font-size:12px">
+      <p>智能体与业务系统融合方案研究报告 · 2026年8月</p>
+      <p>光粒AI平台 · 内部调研文档</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function scrollToSec(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+}
+function switchTab(e, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+// Scroll spy
+const sections = document.querySelectorAll('.section');
+const navItems = document.querySelectorAll('.nav-item');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(sec => {
+    const top = sec.offsetTop - 100;
+    if (window.scrollY >= top) current = sec.id;
+  });
+  navItems.forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(current)) {
+      item.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
