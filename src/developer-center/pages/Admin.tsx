@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Layout, Menu, Card, Row, Col, Button, Tag, Progress, Drawer, Switch, Form, Input, InputNumber, Select, Table, Statistic, List, Descriptions, App as AntdApp, Empty, Space, Modal, Tree } from 'antd'
+import { Layout, Menu, Card, Row, Col, Button, Tag, Progress, Drawer, Switch, Form, Input, InputNumber, Select, Table, Statistic, List, Descriptions, App as AntdApp, Empty, Modal, Tree } from 'antd'
 import {
   CloudServerOutlined,
   DeploymentUnitOutlined,
@@ -17,7 +17,6 @@ import {
   RobotOutlined,
   ArrowLeftOutlined,
   TeamOutlined,
-  UserAddOutlined,
   SearchOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
@@ -52,7 +51,7 @@ const processSideItems = [
 
 const systemSideItems = [
   { key: 'tenant', icon: <CloudServerOutlined />, label: '租户管理' },
-  { key: 'org-data', icon: <TeamOutlined />, label: '人员组织数据' },
+  { key: 'org-data', icon: <TeamOutlined />, label: '人员组织' },
   { key: 'account', icon: <UserSwitchOutlined />, label: '账号管理' },
   { key: 'sso', icon: <SafetyCertificateOutlined />, label: 'SSO配置' },
   { key: 'dict', icon: <BookOutlined />, label: '字典管理' },
@@ -167,6 +166,38 @@ const seedPersons: PersonItem[] = [
   { key: 'p10', name: '郑敏', empNo: 'BAIC010', dept: '北汽福田-销售部', position: '销售顾问', phone: '138****1010', status: '在职' },
 ]
 
+// 组织树按部门名称过滤（保留匹配节点及其祖先链与子树）
+const filterOrgTree = (nodes: OrgNode[], q: string): OrgNode[] => {
+  if (!q) return nodes
+  const lower = q.toLowerCase()
+  const walk = (list: OrgNode[]): OrgNode[] => {
+    const result: OrgNode[] = []
+    for (const n of list) {
+      const selfMatch = n.title.toLowerCase().includes(lower)
+      const children = n.children ? walk(n.children) : []
+      if (selfMatch) {
+        result.push({ ...n, children: n.children })
+      } else if (children.length > 0) {
+        result.push({ ...n, children })
+      }
+    }
+    return result
+  }
+  return walk(nodes)
+}
+
+const collectOrgKeys = (nodes: OrgNode[]): string[] => {
+  const keys: string[] = []
+  const walk = (list: OrgNode[]) => {
+    for (const n of list) {
+      keys.push(n.key)
+      if (n.children) walk(n.children)
+    }
+  }
+  walk(nodes)
+  return keys
+}
+
 export default function Admin({ section = 'process' }: { section?: 'process' | 'system' }) {
   const { message } = AntdApp.useApp()
   const sideItems = section === 'process' ? processSideItems : systemSideItems
@@ -177,7 +208,6 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
     setDesigningItem(null)
     setOrgSearch('')
     setSelectedDept(null)
-    setPersonModalOpen(false)
   }, [section])
   const openKeys = active.startsWith('process') ? ['process'] : []
   const [tenants, setTenants] = useState<Tenant[]>(seedTenants.map((t) => ({ ...t })))
@@ -188,7 +218,8 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
   const [designingItem, setDesigningItem] = useState<{ type: string; name: string } | null>(null)
   const [orgSearch, setOrgSearch] = useState('')
   const [selectedDept, setSelectedDept] = useState<string | null>(null)
-  const [personModalOpen, setPersonModalOpen] = useState(false)
+  const [orgTreeSearch, setOrgTreeSearch] = useState('')
+  const [orgExpandedKeys, setOrgExpandedKeys] = useState<string[] | undefined>(undefined)
   const [dictCats, setDictCats] = useState<DictCategory[]>(seedCats.map((c) => ({ ...c })))
   const [dictEntries, setDictEntries] = useState<DictItem[]>(seedItems.map((d) => ({ ...d })))
   const [activeCat, setActiveCat] = useState<string>('business_domain')
@@ -197,8 +228,8 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
   const [catForm] = Form.useForm()
   const [itemForm] = Form.useForm()
   const [accounts, setAccounts] = useState<Account[]>(seedAccounts.map((a) => ({ ...a })))
-  const [acctDrawer, setAcctDrawer] = useState<{ open: boolean; editing: Account | null }>({ open: false, editing: null })
-  const [acctForm] = Form.useForm()
+  const [acctSearch, setAcctSearch] = useState('')
+  const [acctStatus, setAcctStatus] = useState<'all' | 'enabled' | 'disabled'>('all')
   const [pwdModal, setPwdModal] = useState<{ open: boolean; account: Account | null; newPwd: string }>({ open: false, account: null, newPwd: '' })
 
   const openTenant = (t: Tenant) => {
@@ -471,18 +502,28 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
           (!selectedDept || p.dept.includes(selectedDept)) &&
           (!orgSearch || p.name.includes(orgSearch) || p.empNo.includes(orgSearch))
         )
+        const filteredOrgTree = filterOrgTree(orgTree, orgTreeSearch)
+        const effectiveOrgKeys = orgTreeSearch ? collectOrgKeys(filteredOrgTree) : (orgExpandedKeys ?? collectOrgKeys(filteredOrgTree))
         return (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>人员组织数据</h2>
-              <Button type="primary" icon={<UserAddOutlined />} onClick={() => setPersonModalOpen(true)}>新增人员</Button>
+            <div style={{ marginBottom: 16 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>人员组织</h2>
             </div>
             <Row gutter={16}>
               <Col span={6}>
                 <Card style={{ borderRadius: 12 }} title="组织架构" size="small">
+                  <Input.Search
+                    placeholder="搜索部门名称"
+                    allowClear
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    value={orgTreeSearch}
+                    onChange={(e) => setOrgTreeSearch(e.target.value)}
+                  />
                   <Tree
-                    treeData={orgTree}
-                    defaultExpandAll
+                    treeData={filteredOrgTree}
+                    expandedKeys={effectiveOrgKeys}
+                    onExpand={(keys) => setOrgExpandedKeys(keys as string[])}
                     onSelect={(keys) => setSelectedDept(keys[0] as string)}
                     style={{ fontSize: 13 }}
                   />
@@ -511,83 +552,27 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
                       { title: '姓名', dataIndex: 'name', width: 100, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
                       { title: '工号', dataIndex: 'empNo', width: 100 },
                       { title: '部门', dataIndex: 'dept' },
-                      { title: '职位', dataIndex: 'position', width: 120 },
+                      { title: '岗位', dataIndex: 'position', width: 120 },
                       { title: '手机', dataIndex: 'phone', width: 130 },
                       { title: '状态', dataIndex: 'status', width: 80, render: (s: string) => <Tag color={s === '在职' ? 'success' : s === '休假' ? 'warning' : 'default'}>{s}</Tag> },
-                      { title: '操作', width: 120, render: () => (
-                        <Space>
-                          <Button size="small" type="link" onClick={() => message.info('编辑人员（演示）')}>编辑</Button>
-                          <Button size="small" type="link" danger onClick={() => message.info('删除人员（演示）')}>删除</Button>
-                        </Space>
-                      ) },
                     ]}
                   />
                 </Card>
               </Col>
             </Row>
-            <Modal
-              title="新增人员"
-              open={personModalOpen}
-              onCancel={() => setPersonModalOpen(false)}
-              onOk={() => { message.success('人员已添加（演示）'); setPersonModalOpen(false) }}
-            >
-              <Form layout="vertical">
-                <Form.Item label="姓名"><Input placeholder="请输入姓名" /></Form.Item>
-                <Form.Item label="工号"><Input placeholder="自动生成" disabled /></Form.Item>
-                <Form.Item label="部门"><Select placeholder="请选择部门" options={[{ value: '营销中心', label: '北汽股份-营销中心' }, { value: '研发中心', label: '北汽股份-研发中心' }, { value: '财务部', label: '北汽股份-财务部' }]} /></Form.Item>
-                <Form.Item label="职位"><Input placeholder="请输入职位" /></Form.Item>
-                <Form.Item label="手机"><Input placeholder="请输入手机号" /></Form.Item>
-              </Form>
-            </Modal>
           </div>
         )
       }
       case 'account': {
-        const roleOptions = systemRoles.map((r) => ({ value: r.name, label: r.name }))
-        const tenantOptions = tenants.map((t) => ({ value: t.id, label: t.name }))
-        const usedEmpNos = new Set(accounts.map((a) => a.empNo))
-        const availablePersons = seedPersons.filter((p) => !usedEmpNos.has(p.empNo))
-
-        const openAcctCreate = () => {
-          setAcctDrawer({ open: true, editing: null })
-          acctForm.resetFields()
-          acctForm.setFieldsValue({ role: '普通用户', tenantId: 'T001' })
-        }
-        const openAcctEdit = (a: Account) => {
-          setAcctDrawer({ open: true, editing: a })
-          acctForm.setFieldsValue({ nickname: a.nickname, role: a.role, tenantId: a.tenantId })
-        }
-        const saveAcct = () => {
-          acctForm.validateFields().then((v) => {
-            if (acctDrawer.editing) {
-              setAccounts((p) => p.map((a) => (a.id === acctDrawer.editing!.id ? { ...a, nickname: v.nickname, role: v.role, tenantId: v.tenantId } : a)))
-              message.success('账号信息已更新')
-            } else {
-              const person = seedPersons.find((p) => p.empNo === v.empNo)
-              if (!person) { message.error('请选择关联人员'); return }
-              const newAcct: Account = {
-                id: `a${Date.now().toString(36)}`,
-                username: person.empNo,
-                nickname: v.nickname || person.name,
-                empNo: person.empNo,
-                name: person.name,
-                dept: person.dept,
-                position: person.position,
-                phone: person.phone,
-                tenantId: v.tenantId,
-                enabled: true,
-                role: v.role,
-                createdAt: new Date().toISOString().slice(0, 10),
-              }
-              setAccounts((p) => [...p, newAcct])
-              message.success('账号已创建')
-            }
-            setAcctDrawer((p) => ({ ...p, open: false }))
-          })
-        }
+        const filteredAccounts = accounts.filter((a) => {
+          const kw = acctSearch.trim().toLowerCase()
+          const matchKw = !kw || a.name.toLowerCase().includes(kw) || a.username.toLowerCase().includes(kw)
+          const matchStatus = acctStatus === 'all' ? true : acctStatus === 'enabled' ? a.enabled : !a.enabled
+          return matchKw && matchStatus
+        })
         const toggleAcct = (a: Account, on: boolean) => {
           setAccounts((p) => p.map((x) => (x.id === a.id ? { ...x, enabled: on } : x)))
-          message.success(`${a.nickname} 已${on ? '启用' : '禁用'}`)
+          message.success(`${a.name} 已${on ? '启用' : '禁用'}`)
         }
         const resetPwd = (a: Account) => {
           const pwd = 'Init@' + Math.floor(100000 + Math.random() * 900000)
@@ -600,88 +585,47 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
 
         return (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>账号管理</h2>
-                <span style={{ fontSize: 13, color: '#94a3b8' }}>对接人员组织数据，管理登录账号的启用状态、昵称与密码重置</span>
-              </div>
-              <Button type="primary" icon={<PlusOutlined />} onClick={openAcctCreate} disabled={availablePersons.length === 0}>新建账号</Button>
+            <div style={{ marginBottom: 16 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>账号管理</h2>
             </div>
             <Card style={{ borderRadius: 12 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                <Input.Search
+                  placeholder="搜索姓名或账号"
+                  allowClear
+                  style={{ width: 280 }}
+                  value={acctSearch}
+                  onChange={(e) => setAcctSearch(e.target.value)}
+                />
+                <Select
+                  style={{ width: 140 }}
+                  value={acctStatus}
+                  onChange={(v) => setAcctStatus(v)}
+                  options={[
+                    { value: 'all', label: '全部状态' },
+                    { value: 'enabled', label: '已启用' },
+                    { value: 'disabled', label: '已禁用' },
+                  ]}
+                />
+              </div>
               <Table
                 rowKey="id"
-                dataSource={accounts}
+                dataSource={filteredAccounts}
                 pagination={{ pageSize: 8 }}
                 size="middle"
                 columns={[
-                  { title: '昵称', dataIndex: 'nickname', width: 100, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                  { title: '账号', dataIndex: 'username', width: 100 },
-                  { title: '姓名', dataIndex: 'name', width: 90 },
+                  { title: '姓名', dataIndex: 'name', width: 100, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                  { title: '账号', dataIndex: 'username', width: 110 },
                   { title: '部门', dataIndex: 'dept' },
-                  { title: '职位', dataIndex: 'position', width: 110 },
-                  { title: '角色', dataIndex: 'role', width: 110, render: (r: string) => <Tag color="blue">{r}</Tag> },
-                  { title: '所属租户', dataIndex: 'tenantId', width: 110, render: (t: string) => <span>{tenantOptions.find((o) => o.value === t)?.label ?? t}</span> },
+                  { title: '职位', dataIndex: 'position', width: 120 },
                   { title: '启用', dataIndex: 'enabled', width: 80, render: (e: boolean, r: Account) => <Switch size="small" checked={e} onChange={(on) => toggleAcct(r, on)} /> },
                   { title: '最后登录', dataIndex: 'lastLoginAt', width: 150, render: (v: string) => v ? <span>{v}</span> : <span style={{ color: '#cbd5e1' }}>—</span> },
-                  { title: '操作', width: 160, render: (_: unknown, r: Account) => (
-                    <Space>
-                      <Button size="small" type="link" onClick={() => openAcctEdit(r)}>编辑</Button>
-                      <Button size="small" type="link" icon={<KeyOutlined />} onClick={() => resetPwd(r)}>密码重置</Button>
-                    </Space>
+                  { title: '操作', width: 100, render: (_: unknown, r: Account) => (
+                    <Button size="small" type="link" icon={<KeyOutlined />} onClick={() => resetPwd(r)}>密码重置</Button>
                   ) },
                 ]}
               />
             </Card>
-
-            <Drawer
-              title={acctDrawer.editing ? '编辑账号' : '新建账号'}
-              open={acctDrawer.open}
-              onClose={() => setAcctDrawer((p) => ({ ...p, open: false }))}
-              width={520}
-              footer={
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <Button onClick={() => setAcctDrawer((p) => ({ ...p, open: false }))}>取消</Button>
-                  <Button type="primary" onClick={saveAcct}>保存</Button>
-                </div>
-              }
-            >
-              <Form form={acctForm} layout="vertical">
-                {!acctDrawer.editing ? (
-                  <Form.Item label="关联人员" name="empNo" rules={[{ required: true, message: '请选择关联人员' }]} extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>从人员组织数据中选择，自动带出姓名、部门、职位</span>}>
-                    <Select
-                      showSearch
-                      placeholder="请选择人员"
-                      optionFilterProp="label"
-                      options={availablePersons.map((p) => ({ value: p.empNo, label: `${p.name}（${p.empNo}）· ${p.dept}` }))}
-                    />
-                  </Form.Item>
-                ) : (
-                  <>
-                    <Form.Item label="登录账号">
-                      <Input value={acctDrawer.editing.username} disabled />
-                    </Form.Item>
-                    <Form.Item label="姓名">
-                      <Input value={acctDrawer.editing.name} disabled />
-                    </Form.Item>
-                    <Form.Item label="部门">
-                      <Input value={acctDrawer.editing.dept} disabled />
-                    </Form.Item>
-                    <Form.Item label="职位">
-                      <Input value={acctDrawer.editing.position} disabled />
-                    </Form.Item>
-                  </>
-                )}
-                <Form.Item label="昵称" name="nickname" rules={[{ required: true, message: '请输入昵称' }]}>
-                  <Input placeholder="请输入昵称" maxLength={20} showCount />
-                </Form.Item>
-                <Form.Item label="角色" name="role" rules={[{ required: true, message: '请选择角色' }]}>
-                  <Select options={roleOptions} placeholder="请选择角色" />
-                </Form.Item>
-                <Form.Item label="所属租户" name="tenantId" rules={[{ required: true, message: '请选择租户' }]}>
-                  <Select options={tenantOptions} placeholder="请选择租户" />
-                </Form.Item>
-              </Form>
-            </Drawer>
 
             <Modal
               title="密码重置"
@@ -694,7 +638,7 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
             >
               {pwdModal.account && (
                 <div>
-                  <p style={{ marginBottom: 12 }}>已为 <b>{pwdModal.account.nickname}（{pwdModal.account.username}）</b> 重置密码，新临时密码如下：</p>
+                  <p style={{ marginBottom: 12 }}>已为 <b>{pwdModal.account.name}（{pwdModal.account.username}）</b> 重置密码，新临时密码如下：</p>
                   <div style={{ background: '#f1f5f9', borderRadius: 8, padding: '16px', textAlign: 'center', fontFamily: 'monospace', fontSize: 20, letterSpacing: 2, fontWeight: 700, color: '#2563eb' }}>
                     {pwdModal.newPwd}
                   </div>
