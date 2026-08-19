@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Card, Button, Input, Space, Tag, Menu, Empty, Select, Modal, Form, Divider, App as AntdApp } from 'antd'
-import { PlusOutlined, SearchOutlined, AppstoreOutlined, FileTextOutlined, ArrowRightOutlined, SettingOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
+import { Card, Button, Input, Space, Tag, Empty, Select, Modal, Form, Divider, App as AntdApp } from 'antd'
+import { PlusOutlined, SearchOutlined, ArrowRightOutlined, SettingOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { AppIcon } from '@/shared/components/AppIcon'
@@ -24,11 +24,6 @@ export default function AppsList() {
       a.name.toLowerCase().includes(keyword.toLowerCase()) &&
       (domainFilter === 'all' || a.domain === domainFilter),
   )
-
-  const domainOptions = [
-    { value: 'all', label: '全部领域' },
-    ...localDomains.map((d) => ({ value: d.key, label: d.name })),
-  ]
 
   const openCreateDomain = () => {
     setEditingDomain(null)
@@ -64,116 +59,116 @@ export default function AppsList() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 16, padding: '20px 24px 40px', maxWidth: 1400, margin: '0 auto' }}>
-      {/* 左侧导航 */}
-      <div style={{ width: 220, flexShrink: 0 }}>
-        <Card style={{ borderRadius: 12, padding: 4 }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', padding: '8px 12px 4px', fontWeight: 600 }}>应用中心</div>
-          <Menu
-            mode="inline"
-            selectedKeys={['list']}
-            style={{ border: 'none' }}
-            items={[
-              { key: 'list', icon: <AppstoreOutlined />, label: '应用列表' },
-              { key: 'create', icon: <PlusOutlined />, label: '创建应用', onClick: () => navigate('/apps/create') },
-            ]}
-            onClick={({ key }) => key === 'create' && navigate('/apps/create')}
-          />
-          <div style={{ borderTop: '1px solid #f0f0f0', margin: '8px 4px' }} />
-          <Menu
-            mode="inline"
-            selectedKeys={[]}
-            style={{ border: 'none' }}
-            items={[
-              { key: 'domain', icon: <SettingOutlined />, label: '业务领域管理', onClick: () => setDomainModalOpen(true) },
-            ]}
-          />
-        </Card>
-        <Card style={{ borderRadius: 12, marginTop: 12, padding: 4 }} title={<span style={{ fontSize: 13 }}><FileTextOutlined /> 全部应用</span>}>
-          {apps.map((a) => (
-            <div
-              key={a.id}
-              onClick={() => navigate(`/apps/${a.id}`)}
-              style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-              className="hoverable"
-            >
-              <AppIcon icon={a.icon} bg={a.iconBg} size={26} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>/{a.code}</div>
-              </div>
-            </div>
-          ))}
-        </Card>
-      </div>
+    <div style={{ padding: '20px 24px 40px', maxWidth: 1400, margin: '0 auto' }}>
+      <Card style={{ borderRadius: 12 }}>
+        {/* 标题栏 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>应用列表</span>
+          <Space>
+            <Input
+              placeholder="搜索应用名称"
+              allowClear
+              prefix={<SearchOutlined />}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              style={{ width: 220 }}
+            />
+            <Button icon={<SettingOutlined />} onClick={() => setDomainModalOpen(true)}>领域管理</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/apps/create')}>
+              创建应用
+            </Button>
+          </Space>
+        </div>
 
-      {/* 右侧主区域 */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Card style={{ borderRadius: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
-            <span style={{ fontSize: 16, fontWeight: 700 }}>应用列表</span>
-            <Space>
-              <Select
-                value={domainFilter}
-                onChange={setDomainFilter}
-                options={domainOptions}
-                style={{ width: 140 }}
-              />
-              <Input
-                placeholder="搜索应用名称"
-                allowClear
-                prefix={<SearchOutlined />}
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                style={{ width: 200 }}
-              />
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/apps/create')}>
-                创建应用
-              </Button>
-            </Space>
+        {/* 领域筛选 — 平铺 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #f0f0f0' }}>
+          <div
+            onClick={() => setDomainFilter('all')}
+            style={{
+              padding: '4px 14px',
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: 'pointer',
+              fontWeight: domainFilter === 'all' ? 600 : 400,
+              color: domainFilter === 'all' ? '#2563eb' : '#64748b',
+              background: domainFilter === 'all' ? '#eaf1ff' : '#f8fafc',
+              border: domainFilter === 'all' ? '1px solid #2563eb33' : '1px solid #eef2f7',
+              transition: 'all 0.15s',
+            }}
+          >
+            全部领域
           </div>
+          {localDomains.sort((a, b) => a.sort - b.sort).map((d) => {
+            const active = domainFilter === d.key
+            const count = apps.filter((a) => a.domain === d.key).length
+            return (
+              <div
+                key={d.key}
+                onClick={() => setDomainFilter(d.key)}
+                style={{
+                  padding: '4px 14px',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  fontWeight: active ? 600 : 400,
+                  color: active ? d.color : '#64748b',
+                  background: active ? d.color + '15' : '#f8fafc',
+                  border: active ? `1px solid ${d.color}55` : '1px solid #eef2f7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s',
+                }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
+                {d.name}
+                <span style={{ fontSize: 11, opacity: 0.6 }}>{count}</span>
+              </div>
+            )
+          })}
+        </div>
 
-          {filtered.length === 0 ? (
-            <Empty description="暂无应用" style={{ padding: 40 }} />
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16, marginTop: 8 }}>
-              {filtered.map((a) => (
-                <Card
-                  key={a.id}
-                  className="hoverable"
-                  hoverable
-                  onClick={() => navigate(`/apps/${a.id}`)}
-                  style={{ borderRadius: 12, cursor: 'pointer', borderColor: '#eef2f7' }}
-                >
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <AppIcon icon={a.icon} bg={a.iconBg} size={44} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{a.name}</span>
-                        <DomainTag domain={a.domain} />
-                      </div>
-                      <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4, fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <LinkOutlined /> {a.accessUrl}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                        {tenantMap[a.tenantId]?.name} · {a.appKey}
-                      </div>
+        {/* 应用卡片网格 */}
+        {filtered.length === 0 ? (
+          <Empty description="暂无应用" style={{ padding: 40 }} />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+            {filtered.map((a) => (
+              <Card
+                key={a.id}
+                className="hoverable"
+                hoverable
+                onClick={() => navigate(`/apps/${a.id}`)}
+                style={{ borderRadius: 12, cursor: 'pointer', borderColor: '#eef2f7' }}
+              >
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <AppIcon icon={a.icon} bg={a.iconBg} size={44} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{a.name}</span>
+                      <DomainTag domain={a.domain} />
+                    </div>
+                    <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4, fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <LinkOutlined /> {a.accessUrl}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                      {tenantMap[a.tenantId]?.name} · {a.appKey}
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 12, marginBottom: 8, lineHeight: 1.6, minHeight: 38 }}>
-                    {a.description}
-                  </div>
-                  <div style={{ borderTop: '1px dashed #eef2f7', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <Tag style={{ margin: 0, color: '#2563eb', cursor: 'pointer', background: '#eaf1ff', border: 'none' }}>
-                      查看详情 <ArrowRightOutlined />
-                    </Tag>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 12, marginBottom: 8, lineHeight: 1.6, minHeight: 38 }}>
+                  {a.description}
+                </div>
+                <div style={{ borderTop: '1px dashed #eef2f7', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <Tag style={{ margin: 0, color: '#2563eb', cursor: 'pointer', background: '#eaf1ff', border: 'none' }}>
+                    查看详情 <ArrowRightOutlined />
+                  </Tag>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* 业务领域管理弹窗 */}
       <Modal
