@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { tenants } from '@/mock/tenants'
 import { AppIcon } from '@/shared/components/AppIcon'
+import { businessDomains } from '@/mock/businessDomains'
 
 const presetIcons = ['Appstore', 'FileProtect', 'Car', 'Shop', 'Team', 'Dashboard', 'Profile', 'Block']
 const presetColors = ['#2563eb', '#06b6d4', '#7c3aed', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#64748b']
@@ -18,12 +19,12 @@ export default function CreateApp() {
   const [color, setColor] = useState('#2563eb')
   const [code, setCode] = useState('')
 
-  const onFinish = (values: { name: string; code: string; description: string; tenantId: string }) => {
+  const onFinish = (values: { name: string; code: string; description: string; tenantId: string; domain: string }) => {
     if (!/^[a-z0-9-]{2,30}$/.test(values.code)) {
       message.error('应用编码只能包含小写字母、数字和连字符，2-30 位')
       return
     }
-    const id = createApp({ ...values, icon, iconBg: color })
+    const id = createApp({ ...values, icon, iconBg: color, domain: values.domain || 'general' })
     message.success('应用创建成功，进入配置面板')
     navigate(`/apps/${id}`)
   }
@@ -52,6 +53,22 @@ export default function CreateApp() {
 
           <Form.Item label="应用描述" name="description">
             <Input.TextArea placeholder="一句话描述应用的用途与价值" rows={3} maxLength={120} showCount />
+          </Form.Item>
+
+          <Form.Item label="业务领域" name="domain" rules={[{ required: true, message: '请选择业务领域' }]} initialValue="general">
+            <Select
+              placeholder="请选择业务领域"
+              options={businessDomains.map((d) => ({
+                value: d.key,
+                label: (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
+                    {d.name}
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>· {d.description}</span>
+                  </span>
+                ),
+              }))}
+            />
           </Form.Item>
 
           <Form.Item label="应用图标">

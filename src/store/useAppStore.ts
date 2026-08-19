@@ -21,7 +21,7 @@ interface AppState {
   apps: App[]
   getApp: (id: string) => App | undefined
   getAppByCode: (code: string) => App | undefined
-  createApp: (input: { name: string; code: string; description: string; tenantId: string; icon: string; iconBg: string }) => string
+  createApp: (input: { name: string; code: string; description: string; tenantId: string; icon: string; iconBg: string; domain: string }) => string
   updateApp: (id: string, patch: Partial<App>) => void
   updateAppStatus: (id: string, status: AppStatus) => void
   setAppCapabilities: (id: string, caps: CapabilityKey[]) => void
@@ -85,6 +85,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       description: input.description,
       icon: input.icon || 'Appstore',
       iconBg: input.iconBg || '#2563eb',
+      domain: input.domain || 'general',
       tenantId: input.tenantId,
       status: 'draft',
       path: `/app/${input.code}`,

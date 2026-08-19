@@ -91,6 +91,18 @@ export interface AppVersion {
   note: string
 }
 
+// 业务领域分类
+export type BusinessDomainKey = string
+
+export interface BusinessDomain {
+  key: string
+  name: string
+  color: string
+  icon: string
+  description: string
+  sort: number
+}
+
 // 应用
 export interface App {
   id: string
@@ -101,6 +113,8 @@ export interface App {
   iconBg: string
   tenantId: string
   status: AppStatus
+  /** 业务领域分类 key */
+  domain: BusinessDomainKey
   /** 路由后缀，如 /app/contract-approval */
   path: string
   capabilities: CapabilityKey[]
