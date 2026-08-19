@@ -1,20 +1,18 @@
 import { useState } from 'react'
 import { Card, Button, Input, Space, Tag, Empty, Select, App as AntdApp } from 'antd'
 import { PlusOutlined, SearchOutlined, ArrowRightOutlined, LinkOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
-import CreateAppDrawer from './CreateAppDrawer'
+import AppDrawer from './AppDrawer'
 import { AppIcon } from '@/shared/components/AppIcon'
 import { businessDomains } from '@/mock/businessDomains'
 import type { BusinessDomain } from '@/types'
 
 export default function AppsList() {
-  const navigate = useNavigate()
   const { message } = AntdApp.useApp()
   const apps = useAppStore((s) => s.apps)
   const [keyword, setKeyword] = useState('')
   const [domainFilter, setDomainFilter] = useState<string>('all')
-  const [createOpen, setCreateOpen] = useState(false)
+  const [drawerState, setDrawerState] = useState<{ mode: 'create' | 'edit' | 'view'; open: boolean; appId?: string }>({ mode: 'create', open: false })
   const localDomains = businessDomains
 
   const filtered = apps.filter(
@@ -44,7 +42,7 @@ export default function AppsList() {
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerState({ mode: 'create', open: true })}>
               创建应用
             </Button>
           </Space>
@@ -108,7 +106,7 @@ export default function AppsList() {
                 key={a.id}
                 className="hoverable"
                 hoverable
-                onClick={() => navigate(`/apps/${a.id}`)}
+                onClick={() => setDrawerState({ mode: 'view', open: true, appId: a.id })}
                 style={{ borderRadius: 12, cursor: 'pointer', borderColor: '#eef2f7' }}
               >
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -120,9 +118,6 @@ export default function AppsList() {
                     </div>
                     <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4, fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <LinkOutlined /> {a.accessUrl}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      {a.appKey}
                     </div>
                   </div>
                 </div>
@@ -142,7 +137,13 @@ export default function AppsList() {
 
 
       {/* 创建应用抽屉 */}
-      <CreateAppDrawer open={createOpen} onClose={() => setCreateOpen(false)} />
+      <AppDrawer
+        mode={drawerState.mode}
+        open={drawerState.open}
+        appId={drawerState.appId}
+        onClose={() => setDrawerState((p) => ({ ...p, open: false }))}
+        onEdit={() => setDrawerState({ mode: 'edit', open: true, appId: drawerState.appId })}
+      />
     </div>
   )
 }

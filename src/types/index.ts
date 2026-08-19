@@ -119,10 +119,7 @@ export interface App {
   domain: BusinessDomainKey            // 业务领域
 
   // ===== 凭证 =====
-  appKey: string                      // 应用密钥（不可改）
-  appSecret: string                   // 应用密钥密码（可轮换）
-  /** 凭证是否已吊销 */
-  credentialsRevoked?: boolean
+  appSecret: string                   // 应用密钥（创建时生成一次，可复制）
 }
 
 // 租户

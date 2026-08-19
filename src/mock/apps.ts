@@ -1,12 +1,5 @@
 import type { App } from '@/types'
 
-// ===== AppKey 生成规则: AK + 年份 + 应用编码大写去连字符(前8位) =====
-function genAppKey(code: string): string {
-  const year = new Date().getFullYear()
-  const upper = code.replace(/-/g, '').toUpperCase().slice(0, 8)
-  return `AK${year}${upper}`
-}
-
 // ===== AppSecret 生成规则: SK_ + 随机十六进制(32位) =====
 function genAppSecret(): string {
   const hex = '0123456789abcdef'
@@ -26,7 +19,6 @@ export const apps: App[] = [
     accessUrl: 'https://workbench.baic.com.cn/app/contract-approval',
     tenantId: 'T001',
     domain: 'marketing',
-    appKey: genAppKey('contract-approval'),
     appSecret: genAppSecret(),
   },
   {
@@ -39,7 +31,6 @@ export const apps: App[] = [
     accessUrl: 'https://workbench.baic.com.cn/app/vehicle-dispatch',
     tenantId: 'T001',
     domain: 'production',
-    appKey: genAppKey('vehicle-dispatch'),
     appSecret: genAppSecret(),
   },
   {
@@ -52,7 +43,6 @@ export const apps: App[] = [
     accessUrl: 'https://supplier.baic.com.cn',
     tenantId: 'T001',
     domain: 'supply',
-    appKey: genAppKey('supplier-portal'),
     appSecret: genAppSecret(),
   },
   {
@@ -65,7 +55,6 @@ export const apps: App[] = [
     accessUrl: 'https://quality.baic.com.cn',
     tenantId: 'T002',
     domain: 'quality',
-    appKey: genAppKey('quality-trace'),
     appSecret: genAppSecret(),
   },
   {
@@ -78,7 +67,6 @@ export const apps: App[] = [
     accessUrl: 'https://hr.baic.com.cn/salary',
     tenantId: 'T001',
     domain: 'hr',
-    appKey: genAppKey('salary-mgmt'),
     appSecret: genAppSecret(),
   },
 ]
@@ -93,4 +81,4 @@ export const appByCode: Record<string, App> = apps.reduce(
   {} as Record<string, App>,
 )
 
-export { genAppKey, genAppSecret }
+export { genAppSecret }

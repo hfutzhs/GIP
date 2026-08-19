@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { App, CapabilityKey, Contract, Todo, Message } from '@/types'
-import { apps as seedApps, genAppKey, genAppSecret } from '@/mock/apps'
+import { apps as seedApps, genAppSecret } from '@/mock/apps'
 import { contracts as seedContracts } from '@/mock/contracts'
 import { todos as seedTodos } from '@/mock/todos'
 import { messages as seedMessages } from '@/mock/messages'
@@ -22,9 +22,6 @@ interface AppState {
   getAppByCode: (code: string) => App | undefined
   createApp: (input: { name: string; code: string; description: string; tenantId: string; icon: string; iconBg: string; domain: string; accessUrl: string }) => string
   updateApp: (id: string, patch: Partial<App>) => void
-  regenerateAppSecret: (id: string) => string
-  revokeCredentials: (id: string) => void
-
   // 合同（工作台演示）
   contracts: Contract[]
   addContract: (c: Omit<Contract, 'id' | 'code' | 'date' | 'status' | 'applicant'>) => void
@@ -67,7 +64,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessUrl: input.accessUrl || `https://workbench.baic.com.cn/app/${input.code}`,
       tenantId: input.tenantId,
       domain: input.domain || 'general',
-      appKey: genAppKey(input.code),
       appSecret: genAppSecret(),
     }
     set((s) => ({ apps: [...s.apps, newApp] }))
@@ -76,21 +72,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateApp: (id, patch) =>
     set((s) => ({ apps: s.apps.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
-
-  regenerateAppSecret: (id) => {
-    const newSecret = genAppSecret()
-    set((s) => ({
-      apps: s.apps.map((a) =>
-        a.id === id ? { ...a, appSecret: newSecret, credentialsRevoked: false } : a,
-      ),
-    }))
-    return newSecret
-  },
-
-  revokeCredentials: (id) =>
-    set((s) => ({
-      apps: s.apps.map((a) => (a.id === id ? { ...a, credentialsRevoked: true } : a)),
-    })),
 
   // 合同（工作台演示用）
   contracts: seedContracts.map((c) => ({ ...c })),
