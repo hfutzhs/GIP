@@ -11,6 +11,7 @@ import {
   NotificationOutlined,
   DashboardOutlined,
   AuditOutlined,
+  BookOutlined,
   PlusOutlined,
   RobotOutlined,
   ArrowLeftOutlined,
@@ -26,6 +27,8 @@ import { tenants as seedTenants } from '@/mock/tenants'
 import { capabilities } from '@/mock/capabilities'
 import type { Tenant, CapabilityKey } from '@/types'
 import ProcessDesigner from './admin/ProcessDesigner'
+import { businessDomains } from '@/mock/businessDomains'
+import type { BusinessDomain } from '@/types'
 import FormDesigner from './admin/FormDesigner'
 import EntityDesigner from './admin/EntityDesigner'
 
@@ -43,6 +46,7 @@ const systemSideItems = [
   { key: 'tenant', icon: <CloudServerOutlined />, label: '租户管理' },
   { key: 'org-data', icon: <TeamOutlined />, label: '人员组织数据' },
   { key: 'sso', icon: <SafetyCertificateOutlined />, label: 'SSO配置' },
+  { key: 'dict', icon: <BookOutlined />, label: '字典管理' },
 ]
 
 // 流程定义
@@ -176,6 +180,10 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
   const [orgSearch, setOrgSearch] = useState('')
   const [selectedDept, setSelectedDept] = useState<string | null>(null)
   const [personModalOpen, setPersonModalOpen] = useState(false)
+  const [dictDomains, setDictDomains] = useState<BusinessDomain[]>(businessDomains.map((d) => ({ ...d })))
+  const [dictEditing, setDictEditing] = useState<BusinessDomain | null>(null)
+  const [dictModalOpen, setDictModalOpen] = useState(false)
+  const [dictForm] = Form.useForm()
 
   const openTenant = (t: Tenant) => {
     setDetailTenant(t)
@@ -626,6 +634,81 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
             </Card>
           </div>
         )
+      case 'dict': {
+        const colorOptions = [
+          { value: '#2563eb', label: '蓝色' }, { value: '#0891b2', label: '青色' }, { value: '#7c3aed', label: '紫色' },
+          { value: '#e11d48', label: '玫红' }, { value: '#ea580c', label: '橙色' }, { value: '#16a34a', label: '绿色' },
+          { value: '#9333ea', label: '紫红' }, { value: '#0d9488', label: '蓝绿' }, { value: '#4f46e5', label: '靛蓝' },
+          { value: '#64748b', label: '灰色' },
+        ]
+        const openDictCreate = () => {
+          setDictEditing(null)
+          dictForm.resetFields()
+          dictForm.setFieldsValue({ color: '#64748b', sort: dictDomains.length + 1 })
+          setDictModalOpen(true)
+        }
+        const openDictEdit = (d: BusinessDomain) => {
+          setDictEditing(d)
+          dictForm.setFieldsValue(d)
+          setDictModalOpen(true)
+        }
+        const saveDict = () => {
+          dictForm.validateFields().then((values) => {
+            if (dictEditing) {
+              setDictDomains((prev) => prev.map((d) => (d.key === dictEditing.key ? { ...d, ...values } : d)))
+              message.success('领域字典已更新')
+            } else {
+              const key = (values.name as string).toLowerCase().replace(/\s/g, '-') + '-' + Date.now().toString(36)
+              setDictDomains((prev) => [...prev, { ...values, key }])
+              message.success('领域字典已创建')
+            }
+            setDictModalOpen(false)
+          })
+        }
+        return (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>字典管理</h2>
+                <span style={{ fontSize: 13, color: '#94a3b8' }}>基础配置字典，管理业务领域等全局枚举数据</span>
+              </div>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openDictCreate}>新建领域</Button>
+            </div>
+            <Card style={{ borderRadius: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 12 }}>业务领域</div>
+              <Table
+                rowKey="key"
+                dataSource={dictDomains.sort((a, b) => a.sort - b.sort)}
+                pagination={false}
+                size="middle"
+                columns={[
+                  { title: '标识颜色', dataIndex: 'color', width: 100, render: (c: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: c, display: 'inline-block' }} />{c}</span> },
+                  { title: '领域名称', dataIndex: 'name', width: 120 },
+                  { title: '描述', dataIndex: 'description' },
+                  { title: '排序', dataIndex: 'sort', width: 80 },
+                  { title: '操作', width: 100, render: (_: unknown, r: BusinessDomain) => <Button size="small" type="link" onClick={() => openDictEdit(r)}>编辑</Button> },
+                ]}
+              />
+            </Card>
+            <Modal title={dictEditing ? '编辑领域' : '新建领域'} open={dictModalOpen} onCancel={() => setDictModalOpen(false)} onOk={saveDict} width={480}>
+              <Form form={dictForm} layout="vertical">
+                <Form.Item label="分类名称" name="name" rules={[{ required: true, message: '请输入分类名称' }]}>
+                  <Input placeholder="例如：研发" maxLength={20} showCount />
+                </Form.Item>
+                <Form.Item label="分类描述" name="description">
+                  <Input.TextArea placeholder="该领域的用途与范围说明" rows={2} maxLength={80} showCount />
+                </Form.Item>
+                <Form.Item label="标识颜色" name="color">
+                  <Select options={colorOptions} style={{ width: 140 }} />
+                </Form.Item>
+                <Form.Item label="排序" name="sort">
+                  <Input type="number" />
+                </Form.Item>
+              </Form>
+            </Modal>
+          </div>
+        )
+      }
       default:
         return <Empty />
     }

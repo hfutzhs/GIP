@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Card, Button, Input, Space, Tag, Empty, Select, Modal, Form, Divider, App as AntdApp } from 'antd'
-import { PlusOutlined, SearchOutlined, ArrowRightOutlined, SettingOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
+import { Card, Button, Input, Space, Tag, Empty, Select, App as AntdApp } from 'antd'
+import { PlusOutlined, SearchOutlined, ArrowRightOutlined, LinkOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import CreateAppDrawer from './CreateAppDrawer'
 import { AppIcon } from '@/shared/components/AppIcon'
-import { tenantMap } from '@/mock/tenants'
 import { businessDomains } from '@/mock/businessDomains'
 import type { BusinessDomain } from '@/types'
 
@@ -15,44 +14,14 @@ export default function AppsList() {
   const apps = useAppStore((s) => s.apps)
   const [keyword, setKeyword] = useState('')
   const [domainFilter, setDomainFilter] = useState<string>('all')
-  const [domainModalOpen, setDomainModalOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
-  const [editingDomain, setEditingDomain] = useState<BusinessDomain | null>(null)
-  const [domainForm] = Form.useForm()
-  const [localDomains, setLocalDomains] = useState<BusinessDomain[]>(businessDomains)
+  const localDomains = businessDomains
 
   const filtered = apps.filter(
     (a) =>
       a.name.toLowerCase().includes(keyword.toLowerCase()) &&
       (domainFilter === 'all' || a.domain === domainFilter),
   )
-
-  const openCreateDomain = () => {
-    setEditingDomain(null)
-    domainForm.resetFields()
-    domainForm.setFieldsValue({ color: '#64748b', sort: localDomains.length + 1 })
-    setDomainModalOpen(true)
-  }
-
-  const openEditDomain = (d: BusinessDomain) => {
-    setEditingDomain(d)
-    domainForm.setFieldsValue(d)
-    setDomainModalOpen(true)
-  }
-
-  const saveDomain = () => {
-    domainForm.validateFields().then((values) => {
-      if (editingDomain) {
-        setLocalDomains((prev) => prev.map((d) => (d.key === editingDomain.key ? { ...d, ...values } : d)))
-        message.success('领域分类已更新')
-      } else {
-        const key = (values.name as string).toLowerCase().replace(/\s/g, '-') + '-' + Date.now().toString(36)
-        setLocalDomains((prev) => [...prev, { ...values, key }])
-        message.success('领域分类已创建')
-      }
-      setDomainModalOpen(false)
-    })
-  }
 
   const DomainTag = ({ domain }: { domain: string }) => {
     const d = localDomains.find((x) => x.key === domain)
@@ -75,7 +44,6 @@ export default function AppsList() {
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
             />
-            <Button icon={<SettingOutlined />} onClick={() => setDomainModalOpen(true)}>领域管理</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
               创建应用
             </Button>
@@ -154,7 +122,7 @@ export default function AppsList() {
                       <LinkOutlined /> {a.accessUrl}
                     </div>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      {tenantMap[a.tenantId]?.name} · {a.appKey}
+                      {a.appKey}
                     </div>
                   </div>
                 </div>
@@ -172,66 +140,6 @@ export default function AppsList() {
         )}
       </Card>
 
-      {/* 业务领域管理弹窗 */}
-      <Modal
-        title="业务领域管理"
-        open={domainModalOpen}
-        onCancel={() => setDomainModalOpen(false)}
-        footer={null}
-        width={680}
-      >
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#64748b' }}>管理应用的业务领域分类，用于应用筛选与归属</span>
-          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateDomain}>新建分类</Button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          {localDomains.sort((a, b) => a.sort - b.sort).map((d) => (
-            <Card key={d.key} size="small" style={{ borderRadius: 10, borderColor: '#eef2f7' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: 1 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: d.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'block' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{d.name}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{d.description}</div>
-                  </div>
-                </div>
-                <Button size="small" type="link" icon={<EditOutlined />} onClick={() => openEditDomain(d)} />
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        <Divider style={{ margin: '16px 0' }} />
-
-        <Form form={domainForm} layout="vertical">
-          <Form.Item label="分类名称" name="name" rules={[{ required: true, message: '请输入分类名称' }]}>
-            <Input placeholder="例如：研发" maxLength={20} showCount />
-          </Form.Item>
-          <Form.Item label="分类描述" name="description">
-            <Input.TextArea placeholder="该领域的用途与范围说明" rows={2} maxLength={80} showCount />
-          </Form.Item>
-          <Form.Item label="标识颜色" name="color">
-            <Select
-              options={[
-                { value: '#2563eb', label: '蓝色' }, { value: '#0891b2', label: '青色' }, { value: '#7c3aed', label: '紫色' },
-                { value: '#e11d48', label: '玫红' }, { value: '#ea580c', label: '橙色' }, { value: '#16a34a', label: '绿色' },
-                { value: '#9333ea', label: '紫红' }, { value: '#0d9488', label: '蓝绿' }, { value: '#4f46e5', label: '靛蓝' },
-                { value: '#64748b', label: '灰色' },
-              ]}
-              style={{ width: 120 }}
-            />
-          </Form.Item>
-          <Form.Item label="排序" name="sort" initialValue={localDomains.length + 1}>
-            <Input type="number" />
-          </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setDomainModalOpen(false)}>取消</Button>
-            <Button type="primary" onClick={saveDomain}>{editingDomain ? '保存' : '创建'}</Button>
-          </div>
-        </Form>
-      </Modal>
 
       {/* 创建应用抽屉 */}
       <CreateAppDrawer open={createOpen} onClose={() => setCreateOpen(false)} />
