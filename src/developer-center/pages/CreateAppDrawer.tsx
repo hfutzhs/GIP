@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Card, Form, Input, Select, Button, Radio, Space, App as AntdApp, Divider, Breadcrumb, Modal, Typography, Alert, Descriptions } from 'antd'
-import { HomeOutlined, AppstoreOutlined, CheckOutlined } from '@ant-design/icons'
+import { Drawer, Form, Input, Select, Button, Radio, Space, App as AntdApp, Divider, Modal, Typography, Alert, Descriptions } from 'antd'
+import { AppstoreOutlined, CheckOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { tenants } from '@/mock/tenants'
@@ -11,7 +11,12 @@ const presetIcons = ['Appstore', 'FileProtect', 'Car', 'Shop', 'Team', 'Dashboar
 const presetColors = ['#2563eb', '#06b6d4', '#7c3aed', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#64748b']
 const { Text, Paragraph } = Typography
 
-export default function CreateApp() {
+interface Props {
+  open: boolean
+  onClose: () => void
+}
+
+export default function CreateAppDrawer({ open, onClose }: Props) {
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
   const createApp = useAppStore((s) => s.createApp)
@@ -22,14 +27,28 @@ export default function CreateApp() {
   const [code, setCode] = useState('')
   const [cred, setCred] = useState<{ open: boolean; appKey: string; appSecret: string; id: string }>({ open: false, appKey: '', appSecret: '', id: '' })
 
-  const onFinish = (values: { name: string; code: string; description: string; tenantId: string; domain: string; accessUrl: string }) => {
-    if (!/^[a-z0-9-]{2,30}$/.test(values.code)) {
-      message.error('应用编码只能包含小写字母、数字和连字符，2-30 位')
-      return
+  const handleOpen = () => {
+    form.resetFields()
+    form.setFieldsValue({ tenantId: tenants[0].id, description: '', domain: 'general' })
+    setIcon('Appstore')
+    setColor('#2563eb')
+    setCode('')
+  }
+
+  const submit = async () => {
+    try {
+      const values = await form.validateFields()
+      if (!/^[a-z0-9-]{2,30}$/.test(values.code)) {
+        message.error('应用编码只能包含小写字母、数字和连字符，2-30 位')
+        return
+      }
+      const id = createApp({ ...values, icon, iconBg: color, domain: values.domain || 'general' })
+      const app = getApp(id)
+      onClose()
+      setCred({ open: true, appKey: app?.appKey ?? '', appSecret: app?.appSecret ?? '', id })
+    } catch {
+      // validation errors shown by form
     }
-    const id = createApp({ ...values, icon, iconBg: color, domain: values.domain || 'general' })
-    const app = getApp(id)
-    setCred({ open: true, appKey: app?.appKey ?? '', appSecret: app?.appSecret ?? '', id })
   }
 
   const goToDetail = () => {
@@ -38,21 +57,25 @@ export default function CreateApp() {
   }
 
   return (
-    <div className="page-container">
-      <Breadcrumb
-        style={{ marginBottom: 16 }}
-        items={[
-          { title: <><HomeOutlined /> 首页</>, href: '/' },
-          { title: '应用中心', href: '/apps' },
-          { title: '创建应用' },
-        ]}
-      />
-      <Card style={{ borderRadius: 12, maxWidth: 820 }} title={<span style={{ fontSize: 16, fontWeight: 700 }}>创建应用</span>}>
+    <>
+      <Drawer
+        title={<span style={{ fontSize: 16, fontWeight: 700 }}>创建应用</span>}
+        open={open}
+        onClose={onClose}
+        afterOpenChange={(v) => v && handleOpen()}
+        width={520}
+        destroyOnClose
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={onClose}>取消</Button>
+            <Button type="primary" icon={<AppstoreOutlined />} onClick={submit}>创建并进入配置</Button>
+          </div>
+        }
+      >
         <Form
           form={form}
           layout="vertical"
-          onFinish={onFinish}
-          initialValues={{ tenantId: tenants[0].id, description: '' }}
+          initialValues={{ tenantId: tenants[0].id, description: '', domain: 'general' }}
           requiredMark
         >
           <Form.Item label="应用名称" name="name" rules={[{ required: true, message: '请输入应用名称' }]}>
@@ -63,7 +86,7 @@ export default function CreateApp() {
             <Input.TextArea placeholder="一句话描述应用的用途与价值" rows={3} maxLength={120} showCount />
           </Form.Item>
 
-          <Form.Item label="业务领域" name="domain" rules={[{ required: true, message: '请选择业务领域' }]} initialValue="general">
+          <Form.Item label="业务领域" name="domain" rules={[{ required: true, message: '请选择业务领域' }]}>
             <Select
               placeholder="请选择业务领域"
               options={businessDomains.map((d) => ({
@@ -141,14 +164,8 @@ export default function CreateApp() {
               options={tenants.map((t) => ({ value: t.id, label: `${t.name}（${t.appCount} 应用 / ${t.userCount} 用户）` }))}
             />
           </Form.Item>
-
-          <Divider style={{ margin: '8px 0 16px' }} />
-          <Space>
-            <Button type="primary" htmlType="submit" icon={<AppstoreOutlined />}>创建并进入配置</Button>
-            <Button onClick={() => navigate('/apps')}>取消</Button>
-          </Space>
         </Form>
-      </Card>
+      </Drawer>
 
       <Modal
         title="应用创建成功"
@@ -178,6 +195,6 @@ export default function CreateApp() {
           AppKey 创建后不可修改；AppSecret 可在凭证管理中重新生成或吊销。
         </div>
       </Modal>
-    </div>
+    </>
   )
 }

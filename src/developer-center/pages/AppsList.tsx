@@ -3,6 +3,7 @@ import { Card, Button, Input, Space, Tag, Empty, Select, Modal, Form, Divider, A
 import { PlusOutlined, SearchOutlined, ArrowRightOutlined, SettingOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
+import CreateAppDrawer from './CreateAppDrawer'
 import { AppIcon } from '@/shared/components/AppIcon'
 import { tenantMap } from '@/mock/tenants'
 import { businessDomains } from '@/mock/businessDomains'
@@ -15,6 +16,7 @@ export default function AppsList() {
   const [keyword, setKeyword] = useState('')
   const [domainFilter, setDomainFilter] = useState<string>('all')
   const [domainModalOpen, setDomainModalOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const [editingDomain, setEditingDomain] = useState<BusinessDomain | null>(null)
   const [domainForm] = Form.useForm()
   const [localDomains, setLocalDomains] = useState<BusinessDomain[]>(businessDomains)
@@ -74,7 +76,7 @@ export default function AppsList() {
               style={{ width: 220 }}
             />
             <Button icon={<SettingOutlined />} onClick={() => setDomainModalOpen(true)}>领域管理</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/apps/create')}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
               创建应用
             </Button>
           </Space>
@@ -230,6 +232,9 @@ export default function AppsList() {
           </div>
         </Form>
       </Modal>
+
+      {/* 创建应用抽屉 */}
+      <CreateAppDrawer open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   )
 }
