@@ -30,7 +30,7 @@ export default function WorkbenchLayout() {
   const readAllMessages = useAppStore((s) => s.readAllMessages)
 
   const currentApp = apps.find((a) => a.code === code)
-  const publishedApps = apps.filter((a) => a.status === 'published')
+  const switchableApps = apps // v1.0: 无状态过滤，全部应用可切换
   const pendingTodos = todos.filter((t) => t.status === 'pending')
   const unreadMessages = messages.filter((m) => !m.read)
 
@@ -112,7 +112,7 @@ export default function WorkbenchLayout() {
   )
 
   const appSwitchMenu = {
-    items: publishedApps.map((a) => ({
+    items: switchableApps.map((a) => ({
       key: a.code,
       label: (
         <span>

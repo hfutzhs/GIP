@@ -1,21 +1,17 @@
 import { useState } from 'react'
-import { Card, Tabs, Button, Input, Space, Tag, Menu, Empty, Select, Modal, Form, Divider, App as AntdApp, theme as antdTheme } from 'antd'
-import { PlusOutlined, SearchOutlined, AppstoreOutlined, FileTextOutlined, ArrowRightOutlined, SettingOutlined, EditOutlined } from '@ant-design/icons'
+import { Card, Button, Input, Space, Tag, Menu, Empty, Select, Modal, Form, Divider, App as AntdApp } from 'antd'
+import { PlusOutlined, SearchOutlined, AppstoreOutlined, FileTextOutlined, ArrowRightOutlined, SettingOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
-import { AppStatusTag } from '@/shared/components/StatusTag'
-import { CapabilityCheckedTag } from '@/shared/components/CapabilityTag'
 import { AppIcon } from '@/shared/components/AppIcon'
 import { tenantMap } from '@/mock/tenants'
 import { businessDomains } from '@/mock/businessDomains'
-import type { AppStatus, BusinessDomain } from '@/types'
+import type { BusinessDomain } from '@/types'
 
 export default function AppsList() {
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
-  const { token } = antdTheme.useToken()
   const apps = useAppStore((s) => s.apps)
-  const [filter, setFilter] = useState<AppStatus | 'all'>('all')
   const [keyword, setKeyword] = useState('')
   const [domainFilter, setDomainFilter] = useState<string>('all')
   const [domainModalOpen, setDomainModalOpen] = useState(false)
@@ -23,26 +19,11 @@ export default function AppsList() {
   const [domainForm] = Form.useForm()
   const [localDomains, setLocalDomains] = useState<BusinessDomain[]>(businessDomains)
 
-  const counts = {
-    all: apps.length,
-    published: apps.filter((a) => a.status === 'published').length,
-    developing: apps.filter((a) => a.status === 'developing').length,
-    draft: apps.filter((a) => a.status === 'draft').length,
-  }
-
   const filtered = apps.filter(
     (a) =>
-      (filter === 'all' || a.status === filter) &&
       a.name.toLowerCase().includes(keyword.toLowerCase()) &&
       (domainFilter === 'all' || a.domain === domainFilter),
   )
-
-  const tabItems = [
-    { key: 'all', label: `全部 (${counts.all})` },
-    { key: 'published', label: `已发布 (${counts.published})` },
-    { key: 'developing', label: `开发中 (${counts.developing})` },
-    { key: 'draft', label: `草稿 (${counts.draft})` },
-  ]
 
   const domainOptions = [
     { value: 'all', label: '全部领域' },
@@ -82,26 +63,22 @@ export default function AppsList() {
     return <Tag style={{ margin: 0, borderRadius: 4, fontSize: 11, border: 'none', background: d.color + '15', color: d.color }}>{d.name}</Tag>
   }
 
-  const sideMenu = (
-    <Menu
-      mode="inline"
-      selectedKeys={['list']}
-      style={{ border: 'none' }}
-      items={[
-        { key: 'list', icon: <AppstoreOutlined />, label: '应用列表' },
-        { key: 'create', icon: <PlusOutlined />, label: '创建应用', onClick: () => navigate('/apps/create') },
-      ]}
-      onClick={({ key }) => key === 'create' && navigate('/apps/create')}
-    />
-  )
-
   return (
     <div style={{ display: 'flex', gap: 16, padding: '20px 24px 40px', maxWidth: 1400, margin: '0 auto' }}>
       {/* 左侧导航 */}
       <div style={{ width: 220, flexShrink: 0 }}>
         <Card style={{ borderRadius: 12, padding: 4 }}>
           <div style={{ fontSize: 12, color: '#94a3b8', padding: '8px 12px 4px', fontWeight: 600 }}>应用中心</div>
-          {sideMenu}
+          <Menu
+            mode="inline"
+            selectedKeys={['list']}
+            style={{ border: 'none' }}
+            items={[
+              { key: 'list', icon: <AppstoreOutlined />, label: '应用列表' },
+              { key: 'create', icon: <PlusOutlined />, label: '创建应用', onClick: () => navigate('/apps/create') },
+            ]}
+            onClick={({ key }) => key === 'create' && navigate('/apps/create')}
+          />
           <div style={{ borderTop: '1px solid #f0f0f0', margin: '8px 4px' }} />
           <Menu
             mode="inline"
@@ -112,7 +89,7 @@ export default function AppsList() {
             ]}
           />
         </Card>
-        <Card style={{ borderRadius: 12, marginTop: 12, padding: 4 }} title={<span style={{ fontSize: 13 }}><FileTextOutlined /> 我的应用</span>}>
+        <Card style={{ borderRadius: 12, marginTop: 12, padding: 4 }} title={<span style={{ fontSize: 13 }}><FileTextOutlined /> 全部应用</span>}>
           {apps.map((a) => (
             <div
               key={a.id}
@@ -134,12 +111,7 @@ export default function AppsList() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <Card style={{ borderRadius: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
-            <Tabs
-              activeKey={filter}
-              onChange={(k) => setFilter(k as AppStatus | 'all')}
-              items={tabItems}
-              style={{ marginBottom: 0 }}
-            />
+            <span style={{ fontSize: 16, fontWeight: 700 }}>应用列表</span>
             <Space>
               <Select
                 value={domainFilter}
@@ -164,7 +136,7 @@ export default function AppsList() {
           {filtered.length === 0 ? (
             <Empty description="暂无应用" style={{ padding: 40 }} />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16, marginTop: 8 }}>
               {filtered.map((a) => (
                 <Card
                   key={a.id}
@@ -178,28 +150,22 @@ export default function AppsList() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{a.name}</span>
-                        <AppStatusTag status={a.status} />
+                        <DomainTag domain={a.domain} />
                       </div>
-                      <div style={{ fontSize: 12, color: token.colorPrimary, marginTop: 4, fontFamily: 'monospace' }}>
-                        {a.path}
+                      <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4, fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <LinkOutlined /> {a.accessUrl}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>{tenantMap[a.tenantId]?.name} · {a.version}</span>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                        {tenantMap[a.tenantId]?.name} · {a.appKey}
                       </div>
                     </div>
                   </div>
                   <div style={{ fontSize: 12, color: '#64748b', marginTop: 12, marginBottom: 8, lineHeight: 1.6, minHeight: 38 }}>
                     {a.description}
                   </div>
-                  <div style={{ borderTop: '1px dashed #eef2f7', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <DomainTag domain={a.domain} />
-                      {a.capabilities.map((c) => (
-                        <CapabilityCheckedTag key={c} capKey={c} />
-                      ))}
-                    </div>
-                    <Tag style={{ margin: 0, color: token.colorPrimary, cursor: 'pointer', background: '#eaf1ff', border: 'none' }}>
-                      配置 <ArrowRightOutlined />
+                  <div style={{ borderTop: '1px dashed #eef2f7', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <Tag style={{ margin: 0, color: '#2563eb', cursor: 'pointer', background: '#eaf1ff', border: 'none' }}>
+                      查看详情 <ArrowRightOutlined />
                     </Tag>
                   </div>
                 </Card>
@@ -252,15 +218,9 @@ export default function AppsList() {
           <Form.Item label="标识颜色" name="color">
             <Select
               options={[
-                { value: '#2563eb', label: '蓝色' },
-                { value: '#0891b2', label: '青色' },
-                { value: '#7c3aed', label: '紫色' },
-                { value: '#e11d48', label: '玫红' },
-                { value: '#ea580c', label: '橙色' },
-                { value: '#16a34a', label: '绿色' },
-                { value: '#9333ea', label: '紫红' },
-                { value: '#0d9488', label: '蓝绿' },
-                { value: '#4f46e5', label: '靛蓝' },
+                { value: '#2563eb', label: '蓝色' }, { value: '#0891b2', label: '青色' }, { value: '#7c3aed', label: '紫色' },
+                { value: '#e11d48', label: '玫红' }, { value: '#ea580c', label: '橙色' }, { value: '#16a34a', label: '绿色' },
+                { value: '#9333ea', label: '紫红' }, { value: '#0d9488', label: '蓝绿' }, { value: '#4f46e5', label: '靛蓝' },
                 { value: '#64748b', label: '灰色' },
               ]}
               style={{ width: 120 }}

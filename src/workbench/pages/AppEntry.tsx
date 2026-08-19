@@ -3,6 +3,7 @@ import { Layout, Menu, Card, Row, Col, Table, Button, Tabs, Tag, Modal, Form, In
 import { PlusOutlined, InboxOutlined, CheckOutlined } from '@ant-design/icons'
 import { useParams } from 'react-router-dom'
 import { useAppStore, useContracts } from '@/store/useAppStore'
+import { getAppMenus, getAppCapabilities } from '@/mock/appEnrichment'
 import { ContractStatusTag } from '@/shared/components/StatusTag'
 import { AppIcon } from '@/shared/components/AppIcon'
 import IconByName from '@/shared/components/IconByName'
@@ -50,7 +51,7 @@ export default function AppEntry() {
   const [createOpen, setCreateOpen] = useState(false)
   const [form] = Form.useForm()
 
-  const menuKeys = useMemo(() => (app ? flattenMenuKeys(app.menus) : []), [app])
+  const menuKeys = useMemo(() => (app ? flattenMenuKeys(getAppMenus(app.code)) : []), [app])
   const currentMenu = activeMenu || menuKeys[0] || ''
 
   if (!app) {
@@ -93,7 +94,7 @@ export default function AppEntry() {
   const renderContent = () => {
     // 非合同审批应用：展示通用占位
     if (app.code !== 'contract-approval') {
-      const node = findMenu(app.menus, currentMenu)
+      const node = findMenu(getAppMenus(app.code), currentMenu)
       return (
         <Card style={{ borderRadius: 12 }}>
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -165,26 +166,26 @@ export default function AppEntry() {
           <AppIcon icon={app.icon} bg={app.iconBg} size={32} />
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{app.name}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{app.version}</div>
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>'v1.0'</div>
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
           <Menu
             mode="inline"
             selectedKeys={[currentMenu]}
-            defaultOpenKeys={app.menus.filter((m) => m.children).map((m) => m.key)}
+            defaultOpenKeys={getAppMenus(app.code).filter((m) => m.children).map((m) => m.key)}
             onClick={({ key }) => {
               setActiveMenu(key)
               if (key === 'm-create') openCreate()
             }}
             style={{ borderRight: 'none' }}
-            items={toMenuItems(app.menus)}
+            items={toMenuItems(getAppMenus(app.code))}
           />
         </div>
         <div style={{ borderTop: '1px solid #eef2f7', padding: 12 }}>
           <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 600 }}>注入能力</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {app.capabilities.map((k) => (
+            {getAppCapabilities(app.code).map((k) => (
               <Tag key={k} style={{ margin: 0, borderRadius: 4, fontSize: 11 }}>
                 <CheckOutlined style={{ color: '#10b981', marginRight: 2 }} />
                 {capabilityMap[k]?.shortName ?? k}

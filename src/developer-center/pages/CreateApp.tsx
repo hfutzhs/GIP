@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Form, Input, Select, Button, Radio, Space, App as AntdApp, Divider, Breadcrumb } from 'antd'
+import { Card, Form, Input, Select, Button, Radio, Space, App as AntdApp, Divider, Breadcrumb, Modal, Typography, Alert, Descriptions } from 'antd'
 import { HomeOutlined, AppstoreOutlined, CheckOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
@@ -9,24 +9,32 @@ import { businessDomains } from '@/mock/businessDomains'
 
 const presetIcons = ['Appstore', 'FileProtect', 'Car', 'Shop', 'Team', 'Dashboard', 'Profile', 'Block']
 const presetColors = ['#2563eb', '#06b6d4', '#7c3aed', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#64748b']
+const { Text, Paragraph } = Typography
 
 export default function CreateApp() {
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
   const createApp = useAppStore((s) => s.createApp)
+  const getApp = useAppStore((s) => s.getApp)
   const [form] = Form.useForm()
   const [icon, setIcon] = useState('Appstore')
   const [color, setColor] = useState('#2563eb')
   const [code, setCode] = useState('')
+  const [cred, setCred] = useState<{ open: boolean; appKey: string; appSecret: string; id: string }>({ open: false, appKey: '', appSecret: '', id: '' })
 
-  const onFinish = (values: { name: string; code: string; description: string; tenantId: string; domain: string }) => {
+  const onFinish = (values: { name: string; code: string; description: string; tenantId: string; domain: string; accessUrl: string }) => {
     if (!/^[a-z0-9-]{2,30}$/.test(values.code)) {
       message.error('应用编码只能包含小写字母、数字和连字符，2-30 位')
       return
     }
     const id = createApp({ ...values, icon, iconBg: color, domain: values.domain || 'general' })
-    message.success('应用创建成功，进入配置面板')
-    navigate(`/apps/${id}`)
+    const app = getApp(id)
+    setCred({ open: true, appKey: app?.appKey ?? '', appSecret: app?.appSecret ?? '', id })
+  }
+
+  const goToDetail = () => {
+    setCred({ ...cred, open: false })
+    navigate(`/apps/${cred.id}`)
   }
 
   return (
@@ -110,13 +118,22 @@ export default function CreateApp() {
             label="应用编码"
             name="code"
             rules={[{ required: true, message: '请输入应用编码' }]}
-            extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>自动生成 URL 后缀：/app/<b style={{ color: '#2563eb' }}>{code || 'your-code'}</b></span>}
+            extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>创建后不可修改，将作为工作台访问地址的后缀：/app/<b style={{ color: '#2563eb' }}>{code || 'your-code'}</b></span>}
           >
             <Input
               placeholder="例如：contract-approval"
               onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
               value={code}
             />
+          </Form.Item>
+
+          <Form.Item
+            label="访问地址"
+            name="accessUrl"
+            rules={[{ required: true, message: '请输入应用正式访问地址' }, { type: 'url', message: '请输入合法的 URL 地址' }]}
+            extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>应用正式访问 URL，如 https://workbench.baic.com.cn/app/{code || 'your-code'}</span>}
+          >
+            <Input placeholder="https://workbench.baic.com.cn/app/your-code" />
           </Form.Item>
 
           <Form.Item label="所属租户" name="tenantId" rules={[{ required: true, message: '请选择租户' }]}>
@@ -132,6 +149,35 @@ export default function CreateApp() {
           </Space>
         </Form>
       </Card>
+
+      <Modal
+        title="应用创建成功"
+        open={cred.open}
+        closable={false}
+        footer={[
+          <Button key="go" type="primary" onClick={goToDetail}>已保存，进入应用详情</Button>,
+        ]}
+      >
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="请立即保存以下凭证信息，AppSecret 仅此一次明文展示"
+        />
+        <Descriptions column={1} size="small" style={{ marginBottom: 8 }}>
+          <Descriptions.Item label="AppKey">
+            <Text code copyable style={{ fontSize: 13 }}>{cred.appKey}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="AppSecret">
+            <Paragraph style={{ margin: 0 }}>
+              <Text code copyable style={{ fontSize: 13, wordBreak: 'break-all' }}>{cred.appSecret}</Text>
+            </Paragraph>
+          </Descriptions.Item>
+        </Descriptions>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>
+          AppKey 创建后不可修改；AppSecret 可在凭证管理中重新生成或吊销。
+        </div>
+      </Modal>
     </div>
   )
 }

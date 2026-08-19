@@ -20,8 +20,9 @@ import {
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { useAppStore, useTodos, useMessages } from '@/store/useAppStore'
+import { getAppMenus, getAppCapabilities, getAppRoles } from '@/mock/appEnrichment'
 import { currentUser, users as allUsers } from '@/mock/users'
-import type { App, CapabilityKey } from '@/types'
+import type { App, CapabilityKey, Todo, Message } from '@/types'
 import type { MenuNode } from '@/types'
 
 type MenuItem = Required<MenuProps>['items'][number]
@@ -43,7 +44,7 @@ export function capabilityMenuItems(app: App): MenuItem[] {
   items.push({ type: 'divider' })
   items.push({ key: 'cap-group', label: <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>注入能力</span>, disabled: true } as MenuItem)
 
-  const caps = app.capabilities as CapabilityKey[]
+  const caps = getAppCapabilities(app.code)
 
   if (caps.includes('sso')) {
     items.push({ key: 'cap-sso', icon: <SafetyCertificateOutlined />, label: '单点登录' })
@@ -184,7 +185,7 @@ function PermissionMenuView() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 16px' }}>菜单管理</h2>
       <Card style={{ borderRadius: 12 }}>
-        <Tree treeData={app ? treeData(app.menus) : []} defaultExpandAll checkable />
+        <Tree treeData={app ? treeData(getAppMenus(app.code)) : []} defaultExpandAll checkable />
       </Card>
     </div>
   )
@@ -198,7 +199,7 @@ function PermissionRoleView() {
       <Card style={{ borderRadius: 12 }}>
         <Table
           rowKey="id"
-          dataSource={app?.roles ?? []}
+          dataSource={app ? getAppRoles(app.code) : []}
           pagination={false}
           size="middle"
           columns={[
@@ -314,7 +315,7 @@ function TodoCenterView() {
       <Card style={{ borderRadius: 12 }}>
         <List
           dataSource={todos}
-          renderItem={(t) => (
+          renderItem={(t: Todo) => (
             <List.Item actions={t.status === 'pending' ? [<Button key="d" size="small" type="primary" onClick={() => finishTodo(t.id)}>处理</Button>] : []}>
               <List.Item.Meta title={t.title} description={<span style={{ fontSize: 12, color: '#94a3b8' }}>{t.appName} · {t.type} · {t.createdAt}</span>} />
               <Tag color={t.status === 'pending' ? 'processing' : 'default'}>{t.status === 'pending' ? '待处理' : '已处理'}</Tag>
@@ -339,7 +340,7 @@ function NotifyCenterView() {
       <Card style={{ borderRadius: 12 }}>
         <List
           dataSource={messages}
-          renderItem={(m) => (
+          renderItem={(m: Message) => (
             <List.Item onClick={() => readMessage(m.id)} style={{ cursor: 'pointer', opacity: m.read ? 0.6 : 1 }}>
               <List.Item.Meta
                 title={<span style={{ fontWeight: m.read ? 400 : 600 }}>{!m.read && <Tag color="processing" style={{ marginRight: 6 }}>未读</Tag>}{m.title}</span>}

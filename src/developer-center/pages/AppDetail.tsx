@@ -1,15 +1,12 @@
-import { Card, Tabs, Breadcrumb, Space, Tag, Empty, Button, theme as antdTheme } from 'antd'
+import { Card, Tabs, Breadcrumb, Button, Space, Tag, Empty, Descriptions, theme as antdTheme } from 'antd'
 import { HomeOutlined, LeftOutlined } from '@ant-design/icons'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
-import { AppStatusTag } from '@/shared/components/StatusTag'
 import { AppIcon } from '@/shared/components/AppIcon'
 import { tenantMap } from '@/mock/tenants'
+import { domainMap } from '@/mock/businessDomains'
 import BasicInfoTab from './app-detail/BasicInfoTab'
-import MenuRegisterTab from './app-detail/MenuRegisterTab'
-import CapabilityComponentsTab from './app-detail/CapabilityComponentsTab'
-import ApiApplyTab from './app-detail/ApiApplyTab'
-import PublishTab from './app-detail/PublishTab'
+import CredentialTab from './app-detail/CredentialTab'
 
 export default function AppDetail() {
   const { id } = useParams()
@@ -27,11 +24,10 @@ export default function AppDetail() {
 
   const tabItems = [
     { key: 'basic', label: '基本信息', children: <BasicInfoTab appId={app.id} /> },
-    { key: 'menu', label: '菜单注册', children: <MenuRegisterTab appId={app.id} /> },
-    { key: 'cap', label: '能力组件', children: <CapabilityComponentsTab appId={app.id} /> },
-    { key: 'api', label: 'API申请', children: <ApiApplyTab appId={app.id} /> },
-    { key: 'publish', label: '发布管理', children: <PublishTab appId={app.id} /> },
+    { key: 'credential', label: '凭证管理', children: <CredentialTab appId={app.id} /> },
   ]
+
+  const domain = domainMap[app.domain]
 
   return (
     <div className="page-container">
@@ -52,13 +48,12 @@ export default function AppDetail() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>{app.name}</span>
-                <AppStatusTag status={app.status} />
+                {domain && <Tag color={domain.color} style={{ margin: 0 }}>{domain.name}</Tag>}
               </div>
-              <Space size={12} style={{ marginTop: 4, fontSize: 12, color: '#94a3b8' }}>
-                <span style={{ fontFamily: 'monospace', color: token.colorPrimary }}>{app.path}</span>
+              <Space size={16} style={{ marginTop: 4, fontSize: 12, color: '#94a3b8' }}>
+                <span style={{ fontFamily: 'monospace', color: token.colorPrimary }}>{app.accessUrl}</span>
+                <span>AppKey: <code style={{ fontSize: 12 }}>{app.appKey}</code></span>
                 <span>{tenantMap[app.tenantId]?.name}</span>
-                <span>{app.version}</span>
-                <Tag style={{ margin: 0 }}>{app.capabilities.length} 项能力</Tag>
               </Space>
             </div>
           </div>

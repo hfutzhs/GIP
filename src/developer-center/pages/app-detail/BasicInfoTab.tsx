@@ -17,11 +17,12 @@ export default function BasicInfoTab({ appId }: { appId: string }) {
       code: app.code,
       tenantId: app.tenantId,
       domain: app.domain,
+      accessUrl: app.accessUrl,
     })
   }, [app.id])
 
-  const onFinish = (values: { name: string; description: string; tenantId: string; domain: string }) => {
-    updateApp(appId, { name: values.name, description: values.description, tenantId: values.tenantId, domain: values.domain })
+  const onFinish = (values: { name: string; description: string; tenantId: string; domain: string; accessUrl: string }) => {
+    updateApp(appId, { name: values.name, description: values.description, tenantId: values.tenantId, domain: values.domain, accessUrl: values.accessUrl })
     message.success('基本信息已保存')
   }
 
@@ -31,7 +32,7 @@ export default function BasicInfoTab({ appId }: { appId: string }) {
         type="info"
         showIcon
         style={{ marginBottom: 20 }}
-        message="应用编码创建后不可修改，它将作为工作台访问地址的后缀。"
+        message="应用编码创建后不可修改，且将作为工作台访问地址的后缀。"
       />
       <Form form={form} layout="vertical" onFinish={onFinish} requiredMark>
         <Form.Item label="应用名称" name="name" rules={[{ required: true, message: '请输入应用名称' }]}>
@@ -42,6 +43,14 @@ export default function BasicInfoTab({ appId }: { appId: string }) {
         </Form.Item>
         <Form.Item label="应用编码" name="code">
           <Input disabled style={{ fontFamily: 'monospace' }} />
+        </Form.Item>
+        <Form.Item
+          label="访问地址"
+          name="accessUrl"
+          rules={[{ required: true, message: '请输入应用正式访问地址' }, { type: 'url', message: '请输入合法的 URL 地址' }]}
+          extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>应用正式访问 URL</span>}
+        >
+          <Input placeholder="https://workbench.baic.com.cn/app/your-code" />
         </Form.Item>
         <Form.Item label="所属租户" name="tenantId" rules={[{ required: true, message: '请选择租户' }]}>
           <Select options={tenants.map((t) => ({ value: t.id, label: t.name }))} />

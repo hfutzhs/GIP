@@ -105,29 +105,24 @@ export interface BusinessDomain {
 
 // 应用
 export interface App {
-  id: string
-  name: string
-  code: string
-  description: string
-  icon: string
-  iconBg: string
-  tenantId: string
-  status: AppStatus
-  /** 业务领域分类 key */
-  domain: BusinessDomainKey
-  /** 路由后缀，如 /app/contract-approval */
-  path: string
-  capabilities: CapabilityKey[]
-  menus: MenuNode[]
-  roles: Role[]
-  version: string
-  versions: AppVersion[]
-  appKey: string
-  appSecret: string
-  /** 发布到工作台后的访问地址 */
-  publishedUrl?: string
-  /** 已申请 API 的 id 集合（用于能力组件勾选后自动出现待申请 API） */
-  appliedApiIds: string[]
+  // ===== 基础信息 =====
+  id: string                          // 应用ID（系统生成，不可改）
+  name: string                        // 应用名称（2-30字符）
+  code: string                        // 应用编码（创建后不可改）
+  description: string                 // 应用描述（≤120字符）
+  icon: string                        // 应用图标
+  iconBg: string                      // 主题色
+  accessUrl: string                   // 访问地址（应用正式访问URL）
+
+  // ===== 归属与分类 =====
+  tenantId: string                    // 所属租户
+  domain: BusinessDomainKey            // 业务领域
+
+  // ===== 凭证 =====
+  appKey: string                      // 应用密钥（不可改）
+  appSecret: string                   // 应用密钥密码（可轮换）
+  /** 凭证是否已吊销 */
+  credentialsRevoked?: boolean
 }
 
 // 租户
