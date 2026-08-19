@@ -11,6 +11,7 @@ import {
   NotificationOutlined,
   DashboardOutlined,
   AuditOutlined,
+  EditOutlined,
   BookOutlined,
   PlusOutlined,
   RobotOutlined,
@@ -29,6 +30,8 @@ import type { Tenant, CapabilityKey } from '@/types'
 import ProcessDesigner from './admin/ProcessDesigner'
 import { businessDomains } from '@/mock/businessDomains'
 import type { BusinessDomain } from '@/types'
+import { dictCategories as seedCats, dictItems as seedItems } from '@/mock/dictionaries'
+import type { DictCategory, DictItem } from '@/mock/dictionaries'
 import FormDesigner from './admin/FormDesigner'
 import EntityDesigner from './admin/EntityDesigner'
 
@@ -180,10 +183,13 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
   const [orgSearch, setOrgSearch] = useState('')
   const [selectedDept, setSelectedDept] = useState<string | null>(null)
   const [personModalOpen, setPersonModalOpen] = useState(false)
-  const [dictDomains, setDictDomains] = useState<BusinessDomain[]>(businessDomains.map((d) => ({ ...d })))
-  const [dictEditing, setDictEditing] = useState<BusinessDomain | null>(null)
-  const [dictModalOpen, setDictModalOpen] = useState(false)
-  const [dictForm] = Form.useForm()
+  const [dictCats, setDictCats] = useState<DictCategory[]>(seedCats.map((c) => ({ ...c })))
+  const [dictEntries, setDictEntries] = useState<DictItem[]>(seedItems.map((d) => ({ ...d })))
+  const [activeCat, setActiveCat] = useState<string>('business_domain')
+  const [catDrawer, setCatDrawer] = useState<{ open: boolean; editing: DictCategory | null }>({ open: false, editing: null })
+  const [itemDrawer, setItemDrawer] = useState<{ open: boolean; editing: DictItem | null }>({ open: false, editing: null })
+  const [catForm] = Form.useForm()
+  const [itemForm] = Form.useForm()
 
   const openTenant = (t: Tenant) => {
     setDetailTenant(t)
@@ -641,71 +647,152 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
           { value: '#9333ea', label: '紫红' }, { value: '#0d9488', label: '蓝绿' }, { value: '#4f46e5', label: '靛蓝' },
           { value: '#64748b', label: '灰色' },
         ]
-        const openDictCreate = () => {
-          setDictEditing(null)
-          dictForm.resetFields()
-          dictForm.setFieldsValue({ color: '#64748b', sort: dictDomains.length + 1 })
-          setDictModalOpen(true)
-        }
-        const openDictEdit = (d: BusinessDomain) => {
-          setDictEditing(d)
-          dictForm.setFieldsValue(d)
-          setDictModalOpen(true)
-        }
-        const saveDict = () => {
-          dictForm.validateFields().then((values) => {
-            if (dictEditing) {
-              setDictDomains((prev) => prev.map((d) => (d.key === dictEditing.key ? { ...d, ...values } : d)))
-              message.success('领域字典已更新')
+        const currentCat = dictCats.find((c) => c.code === activeCat)
+        const currentItems = dictEntries.filter((d) => d.categoryCode === activeCat).sort((a, b) => a.sort - b.sort)
+        const isDomainCat = activeCat === 'business_domain'
+
+        // 分类操作
+        const openCatCreate = () => { setCatDrawer({ open: true, editing: null }); catForm.resetFields(); catForm.setFieldsValue({ code: '', name: '', description: '' }) }
+        const openCatEdit = (c: DictCategory) => { setCatDrawer({ open: true, editing: c }); catForm.setFieldsValue(c) }
+        const saveCat = () => {
+          catForm.validateFields().then((v) => {
+            if (catDrawer.editing) {
+              setDictCats((p) => p.map((c) => (c.key === catDrawer.editing!.key ? { ...c, ...v } : c)))
+              message.success('字典分类已更新')
             } else {
-              const key = (values.name as string).toLowerCase().replace(/\s/g, '-') + '-' + Date.now().toString(36)
-              setDictDomains((prev) => [...prev, { ...values, key }])
-              message.success('领域字典已创建')
+              const key = `cat-${v.code}`
+              setDictCats((p) => [...p, { ...v, key }])
+              message.success('字典分类已创建')
             }
-            setDictModalOpen(false)
+            setCatDrawer((p) => ({ ...p, open: false }))
           })
         }
+
+        // 条目操作
+        const openItemCreate = () => { setItemDrawer({ open: true, editing: null }); itemForm.resetFields(); itemForm.setFieldsValue({ sort: currentItems.length + 1, enabled: true }) }
+        const openItemEdit = (d: DictItem) => { setItemDrawer({ open: true, editing: d }); itemForm.setFieldsValue(d) }
+        const saveItem = () => {
+          itemForm.validateFields().then((v) => {
+            if (itemDrawer.editing) {
+              setDictEntries((p) => p.map((d) => (d.key === itemDrawer.editing!.key ? { ...d, ...v, categoryCode: activeCat } : d)))
+              message.success('字典条目已更新')
+            } else {
+              const key = `${activeCat}-${v.value}-${Date.now().toString(36)}`
+              setDictEntries((p) => [...p, { ...v, key, categoryCode: activeCat }])
+              message.success('字典条目已创建')
+            }
+            setItemDrawer((p) => ({ ...p, open: false }))
+          })
+        }
+
+        const itemColumns = isDomainCat
+          ? [
+              { title: '标识颜色', dataIndex: 'color', width: 100, render: (c: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: c, display: 'inline-block' }} />{c}</span> },
+              { title: '名称', dataIndex: 'label', width: 120 },
+              { title: '字典值', dataIndex: 'value', width: 100, render: (v: string) => <code style={{ fontSize: 13 }}>{v}</code> },
+              { title: '描述', dataIndex: 'description' },
+              { title: '排序', dataIndex: 'sort', width: 70 },
+              { title: '操作', width: 80, render: (_: unknown, r: DictItem) => <Button size="small" type="link" onClick={() => openItemEdit(r)}>编辑</Button> },
+            ]
+          : [
+              { title: '名称', dataIndex: 'label', width: 140 },
+              { title: '字典值', dataIndex: 'value', width: 120, render: (v: string) => <code style={{ fontSize: 13 }}>{v}</code> },
+              { title: '排序', dataIndex: 'sort', width: 70 },
+              { title: '启用', dataIndex: 'enabled', width: 80, render: (e: boolean) => <Switch size="small" checked={e} onChange={() => message.info('切换状态（演示）')} /> },
+              { title: '操作', width: 80, render: (_: unknown, r: DictItem) => <Button size="small" type="link" onClick={() => openItemEdit(r)}>编辑</Button> },
+            ]
+
         return (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>字典管理</h2>
-                <span style={{ fontSize: 13, color: '#94a3b8' }}>基础配置字典，管理业务领域等全局枚举数据</span>
+                <span style={{ fontSize: 13, color: '#94a3b8' }}>分类+字典形式管理全局枚举数据，业务领域等配置统一在此维护</span>
               </div>
-              <Button type="primary" icon={<PlusOutlined />} onClick={openDictCreate}>新建领域</Button>
             </div>
-            <Card style={{ borderRadius: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 12 }}>业务领域</div>
-              <Table
-                rowKey="key"
-                dataSource={dictDomains.sort((a, b) => a.sort - b.sort)}
-                pagination={false}
-                size="middle"
-                columns={[
-                  { title: '标识颜色', dataIndex: 'color', width: 100, render: (c: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: c, display: 'inline-block' }} />{c}</span> },
-                  { title: '领域名称', dataIndex: 'name', width: 120 },
-                  { title: '描述', dataIndex: 'description' },
-                  { title: '排序', dataIndex: 'sort', width: 80 },
-                  { title: '操作', width: 100, render: (_: unknown, r: BusinessDomain) => <Button size="small" type="link" onClick={() => openDictEdit(r)}>编辑</Button> },
-                ]}
-              />
-            </Card>
-            <Modal title={dictEditing ? '编辑领域' : '新建领域'} open={dictModalOpen} onCancel={() => setDictModalOpen(false)} onOk={saveDict} width={480}>
-              <Form form={dictForm} layout="vertical">
+            <Row gutter={16}>
+              {/* 左侧：字典分类 */}
+              <Col span={7}>
+                <Card style={{ borderRadius: 12 }} size="small" title={<span style={{ fontSize: 14 }}>字典分类</span>} extra={<Button size="small" type="text" icon={<PlusOutlined />} onClick={openCatCreate} />}>
+                  <List
+                    dataSource={dictCats}
+                    renderItem={(c) => (
+                      <List.Item
+                        style={{ cursor: 'pointer', background: activeCat === c.code ? '#eaf1ff' : 'transparent', borderRadius: 8, padding: '10px 12px', border: 'none' }}
+                        onClick={() => setActiveCat(c.code)}
+                        actions={[<Button key="e" size="small" type="link" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openCatEdit(c) }} />]}
+                      >
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: activeCat === c.code ? 600 : 500, color: activeCat === c.code ? '#2563eb' : '#0f172a' }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{c.description}</div>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </Card>
+              </Col>
+              {/* 右侧：字典条目 */}
+              <Col span={17}>
+                <Card style={{ borderRadius: 12 }} size="small" title={<span style={{ fontSize: 14 }}>{currentCat?.name ?? '字典'} 条目</span>} extra={<Button size="small" type="primary" icon={<PlusOutlined />} onClick={openItemCreate}>新建条目</Button>}>
+                  <Table rowKey="key" dataSource={currentItems} pagination={false} size="middle" columns={itemColumns} />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* 分类抽屉 */}
+            <Drawer title={catDrawer.editing ? '编辑分类' : '新建分类'} open={catDrawer.open} onClose={() => setCatDrawer((p) => ({ ...p, open: false }))} width={420} footer={
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <Button onClick={() => setCatDrawer((p) => ({ ...p, open: false }))}>取消</Button>
+                <Button type="primary" onClick={saveCat}>保存</Button>
+              </div>
+            }>
+              <Form form={catForm} layout="vertical">
                 <Form.Item label="分类名称" name="name" rules={[{ required: true, message: '请输入分类名称' }]}>
-                  <Input placeholder="例如：研发" maxLength={20} showCount />
+                  <Input placeholder="例如：业务领域" maxLength={20} showCount />
+                </Form.Item>
+                <Form.Item label="分类编码" name="code" rules={[{ required: true, message: '请输入分类编码' }]} extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>英文编码，如 business_domain</span>}>
+                  <Input placeholder="例如：business_domain" disabled={!!catDrawer.editing} />
                 </Form.Item>
                 <Form.Item label="分类描述" name="description">
-                  <Input.TextArea placeholder="该领域的用途与范围说明" rows={2} maxLength={80} showCount />
+                  <Input.TextArea placeholder="该分类的用途说明" rows={2} maxLength={80} showCount />
                 </Form.Item>
-                <Form.Item label="标识颜色" name="color">
-                  <Select options={colorOptions} style={{ width: 140 }} />
+              </Form>
+            </Drawer>
+
+            {/* 条目抽屉 */}
+            <Drawer title={itemDrawer.editing ? '编辑条目' : '新建条目'} open={itemDrawer.open} onClose={() => setItemDrawer((p) => ({ ...p, open: false }))} width={420} footer={
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <Button onClick={() => setItemDrawer((p) => ({ ...p, open: false }))}>取消</Button>
+                <Button type="primary" onClick={saveItem}>保存</Button>
+              </div>
+            }>
+              <Form form={itemForm} layout="vertical">
+                <Form.Item label="名称" name="label" rules={[{ required: true, message: '请输入名称' }]}>
+                  <Input placeholder="例如：研发" maxLength={20} showCount />
                 </Form.Item>
+                <Form.Item label="字典值" name="value" rules={[{ required: true, message: '请输入字典值' }]} extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>唯一标识，如 rd</span>}>
+                  <Input placeholder="例如：rd" />
+                </Form.Item>
+                {isDomainCat && (
+                  <>
+                    <Form.Item label="标识颜色" name="color">
+                      <Select options={colorOptions} style={{ width: 140 }} />
+                    </Form.Item>
+                    <Form.Item label="描述" name="description">
+                      <Input.TextArea placeholder="用途与范围说明" rows={2} maxLength={80} showCount />
+                    </Form.Item>
+                  </>
+                )}
                 <Form.Item label="排序" name="sort">
                   <Input type="number" />
                 </Form.Item>
+                {!isDomainCat && (
+                  <Form.Item label="启用" name="enabled" valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                )}
               </Form>
-            </Modal>
+            </Drawer>
           </div>
         )
       }
