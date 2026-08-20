@@ -126,15 +126,10 @@ export interface App {
 export interface Tenant {
   id: string
   name: string
-  shortName: string
+  code: string
   status: 'running' | 'stopped'
-  appCount: number
   userCount: number
-  quota: number
-  usedQuota: number
-  capabilities: CapabilityKey[]
-  theme: string
-  createTime: string
+  orgIds: string[]
 }
 
 // 合同

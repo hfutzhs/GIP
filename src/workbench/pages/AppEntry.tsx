@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Layout, Menu, Card, Row, Col, Table, Button, Tabs, Tag, Modal, Form, Input, InputNumber, Select, Upload, Statistic, Empty, App as AntdApp } from 'antd'
-import { PlusOutlined, InboxOutlined, CheckOutlined } from '@ant-design/icons'
+import { PlusOutlined, InboxOutlined, CheckOutlined, RocketOutlined, CheckSquareOutlined, FileDoneOutlined, FileSearchOutlined } from '@ant-design/icons'
+import ProcessCenter from './ProcessCenter'
 import { useParams } from 'react-router-dom'
 import { useAppStore, useContracts } from '@/store/useAppStore'
 import { getAppMenus, getAppCapabilities } from '@/mock/appEnrichment'
@@ -52,7 +53,7 @@ export default function AppEntry() {
   const [form] = Form.useForm()
 
   const menuKeys = useMemo(() => (app ? flattenMenuKeys(getAppMenus(app.code)) : []), [app])
-  const currentMenu = activeMenu || menuKeys[0] || ''
+  const currentMenu = activeMenu || 'pc-start'
 
   if (!app) {
     return (
@@ -92,6 +93,10 @@ export default function AppEntry() {
 
   // 根据菜单渲染业务内容
   const renderContent = () => {
+    // 流程中心
+    if (currentMenu.startsWith('pc-')) {
+      return <ProcessCenter view={currentMenu.replace('pc-', '')} />
+    }
     // 非合同审批应用：展示通用占位
     if (app.code !== 'contract-approval') {
       const node = findMenu(getAppMenus(app.code), currentMenu)
@@ -162,36 +167,27 @@ export default function AppEntry() {
   return (
     <Layout style={{ minHeight: 'calc(100vh - 60px)' }}>
       <Sider width={220} style={{ background: '#fff', borderRight: '1px solid #eef2f7', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef2f7', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AppIcon icon={app.icon} bg={app.iconBg} size={32} />
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{app.name}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>'v1.0'</div>
-          </div>
-        </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
           <Menu
             mode="inline"
             selectedKeys={[currentMenu]}
-            defaultOpenKeys={getAppMenus(app.code).filter((m) => m.children).map((m) => m.key)}
-            onClick={({ key }) => {
-              setActiveMenu(key)
-              if (key === 'm-create') openCreate()
-            }}
+            defaultOpenKeys={['pc-group']}
+            onClick={({ key }) => setActiveMenu(key)}
             style={{ borderRight: 'none' }}
-            items={toMenuItems(getAppMenus(app.code))}
+            items={[
+              {
+                key: 'pc-group',
+                type: 'group' as const,
+                label: '流程中心',
+                children: [
+                  { key: 'pc-start', icon: <RocketOutlined />, label: '发起流程' },
+                  { key: 'pc-todo', icon: <CheckSquareOutlined />, label: '我的待办' },
+                  { key: 'pc-done', icon: <FileDoneOutlined />, label: '我的已办' },
+                  { key: 'pc-initiated', icon: <FileSearchOutlined />, label: '我发起的' },
+                ],
+              },
+            ]}
           />
-        </div>
-        <div style={{ borderTop: '1px solid #eef2f7', padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 600 }}>注入能力</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {getAppCapabilities(app.code).map((k) => (
-              <Tag key={k} style={{ margin: 0, borderRadius: 4, fontSize: 11 }}>
-                <CheckOutlined style={{ color: '#10b981', marginRight: 2 }} />
-                {capabilityMap[k]?.shortName ?? k}
-              </Tag>
-            ))}
-          </div>
         </div>
       </Sider>
       <Content style={{ padding: '20px 24px', background: '#f5f7fa', overflowY: 'auto' }}>

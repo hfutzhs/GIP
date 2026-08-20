@@ -12,6 +12,10 @@ interface AppState {
   product: Product
   setProduct: (p: Product) => void
 
+  // 当前租户（应用中心/流程中心按租户隔离）
+  currentTenantId: string
+  setCurrentTenantId: (id: string) => void
+
   // 工作台当前应用 code
   activeAppCode: string
   setActiveAppCode: (code: string) => void
@@ -20,8 +24,9 @@ interface AppState {
   apps: App[]
   getApp: (id: string) => App | undefined
   getAppByCode: (code: string) => App | undefined
-  createApp: (input: { name: string; code: string; description: string; tenantId: string; icon: string; iconBg: string; domain: string; accessUrl: string }) => string
+  createApp: (input: { name: string; description: string; tenantId: string; icon: string; iconBg: string; domain: string; accessUrl: string }) => string
   updateApp: (id: string, patch: Partial<App>) => void
+  deleteApp: (id: string) => void
   // 合同（工作台演示）
   contracts: Contract[]
   addContract: (c: Omit<Contract, 'id' | 'code' | 'date' | 'status' | 'applicant'>) => void
@@ -45,6 +50,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   product: 'developer',
   setProduct: (p) => set({ product: p }),
 
+  currentTenantId: 'T001',
+  setCurrentTenantId: (id) => set({ currentTenantId: id }),
+
   activeAppCode: 'contract-approval',
   setActiveAppCode: (code) => set({ activeAppCode: code }),
 
@@ -54,14 +62,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   createApp: (input) => {
     const id = `app-${Date.now()}`
+    const code = `app-${1000 + get().apps.length}`
     const newApp: App = {
       id,
       name: input.name,
-      code: input.code,
+      code,
       description: input.description,
       icon: input.icon || 'Appstore',
       iconBg: input.iconBg || '#2563eb',
-      accessUrl: input.accessUrl || `https://workbench.baic.com.cn/app/${input.code}`,
+      accessUrl: input.accessUrl || `https://workbench.baic.com.cn/app/${code}`,
       tenantId: input.tenantId,
       domain: input.domain || 'general',
       appSecret: genAppSecret(),
@@ -72,6 +81,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateApp: (id, patch) =>
     set((s) => ({ apps: s.apps.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
+  deleteApp: (id) => set((s) => ({ apps: s.apps.filter((a) => a.id !== id) })),
 
   // 合同（工作台演示用）
   contracts: seedContracts.map((c) => ({ ...c })),

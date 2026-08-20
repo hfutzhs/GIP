@@ -1,48 +1,42 @@
-import { Layout, Avatar, Dropdown, Badge, Space, Popover, List, Button, Tag, Empty, theme as antdTheme } from 'antd'
+import { Layout, Avatar, Dropdown, Badge, Space, Popover, List, Button, Tag, Empty, Tooltip, theme as antdTheme } from 'antd'
 import {
   ThunderboltFilled,
-  DownOutlined,
-  SwapOutlined,
   BellOutlined,
   CheckSquareOutlined,
-  AppstoreOutlined,
-  ArrowRightOutlined,
+  SwapOutlined,
+  DownOutlined,
+  CodeOutlined,
 } from '@ant-design/icons'
-import { Outlet, useNavigate, useParams } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { currentUser } from '@/mock/users'
+import { tenants } from '@/mock/tenants'
 import type { Todo, Message } from '@/types'
 
 const { Header, Content } = Layout
 
 export default function WorkbenchLayout() {
-  const { code } = useParams()
   const navigate = useNavigate()
   const { token } = antdTheme.useToken()
 
-  const apps = useAppStore((s) => s.apps)
   const todos = useAppStore((s) => s.todos)
   const messages = useAppStore((s) => s.messages)
-  const setProduct = useAppStore((s) => s.setProduct)
-  const setActiveAppCode = useAppStore((s) => s.setActiveAppCode)
   const finishTodo = useAppStore((s) => s.finishTodo)
   const readMessage = useAppStore((s) => s.readMessage)
   const readAllMessages = useAppStore((s) => s.readAllMessages)
 
-  const currentApp = apps.find((a) => a.code === code)
-  const switchableApps = apps // v1.0: 无状态过滤，全部应用可切换
-  const pendingTodos = todos.filter((t) => t.status === 'pending')
-  const unreadMessages = messages.filter((m) => !m.read)
-
-  const switchApp = (appCode: string) => {
-    setActiveAppCode(appCode)
-    navigate(`/app/${appCode}`)
-  }
+  const currentTenantId = useAppStore((s) => s.currentTenantId)
+  const setCurrentTenantId = useAppStore((s) => s.setCurrentTenantId)
+  const setProduct = useAppStore((s) => s.setProduct)
+  const currentTenant = tenants.find((t) => t.id === currentTenantId)
 
   const goDeveloper = () => {
     setProduct('developer')
-    navigate('/')
+    navigate('/apps')
   }
+
+  const pendingTodos = todos.filter((t) => t.status === 'pending')
+  const unreadMessages = messages.filter((m) => !m.read)
 
   const todoContent = (
     <div style={{ width: 360 }}>
@@ -111,26 +105,11 @@ export default function WorkbenchLayout() {
     </div>
   )
 
-  const appSwitchMenu = {
-    items: switchableApps.map((a) => ({
-      key: a.code,
-      label: (
-        <span>
-          {a.name}
-          {a.code === code && <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>当前</Tag>}
-        </span>
-      ),
-    })),
-    onClick: ({ key }: { key: string }) => switchApp(key),
-  }
-
   const userMenu = {
-    items: [
-      { key: 'dev', label: '返回开发者中心', icon: <SwapOutlined /> },
-      { type: 'divider' as const },
-      { key: 'logout', label: '退出登录' },
-    ],
-    onClick: ({ key }: { key: string }) => key === 'dev' && goDeveloper(),
+    items: [{ key: 'logout', label: '退出登录' }],
+    onClick: ({ key }: { key: string }) => {
+      if (key === 'logout') navigate('/login')
+    },
   }
 
   return (
@@ -144,25 +123,37 @@ export default function WorkbenchLayout() {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: '0 1px 4px rgba(15,23,42,0.04)',
+          boxShadow: '0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ThunderboltFilled style={{ color: token.colorPrimary, fontSize: 22 }} />
-            <span style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>光粒工作台</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(37,99,235,0.25)' }}>
+            <ThunderboltFilled style={{ color: '#ffffff', fontSize: 17 }} />
           </div>
-          <span style={{ color: '#cbd5e1' }}>|</span>
-          <Dropdown menu={appSwitchMenu} placement="bottomLeft">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 10px', borderRadius: 8, background: '#f1f5f9' }}>
-              <AppstoreOutlined style={{ color: token.colorPrimary }} />
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{currentApp?.name ?? '应用'}</span>
-              <DownOutlined style={{ fontSize: 11, color: '#94a3b8' }} />
-            </div>
-          </Dropdown>
+          <span style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>光粒智能工作台</span>
         </div>
 
         <Space size={16}>
+          <Dropdown
+            menu={{
+              items: tenants.map((t) => ({
+                key: t.id,
+                label: (
+                  <span style={{ fontWeight: t.id === currentTenantId ? 600 : 400, color: t.id === currentTenantId ? token.colorPrimary : undefined }}>
+                    {t.name}
+                  </span>
+                ),
+              })),
+              onClick: ({ key }) => setCurrentTenantId(key),
+            }}
+            placement="bottom"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '5px 12px', borderRadius: 8, background: '#f1f5f9', transition: 'background 0.2s ease' }}>
+              <SwapOutlined style={{ fontSize: 14, color: '#475569' }} />
+              <span style={{ fontSize: 13, color: '#334155', fontWeight: 500 }}>{currentTenant?.name}</span>
+              <DownOutlined style={{ fontSize: 11, color: '#94a3b8' }} />
+            </div>
+          </Dropdown>
           <Popover content={todoContent} trigger="click" placement="bottomRight">
             <Badge count={pendingTodos.length} size="small">
               <CheckSquareOutlined style={{ fontSize: 18, color: '#475569', cursor: 'pointer' }} />
@@ -173,6 +164,9 @@ export default function WorkbenchLayout() {
               <BellOutlined style={{ fontSize: 18, color: '#475569', cursor: 'pointer' }} />
             </Badge>
           </Popover>
+          <Tooltip title="切换至开发者中心">
+            <Button type="text" icon={<CodeOutlined style={{ fontSize: 18, color: '#475569' }} />} onClick={goDeveloper} style={{ padding: '4px 6px' }} />
+          </Tooltip>
           <Dropdown menu={userMenu} placement="bottomRight">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <Avatar style={{ background: token.colorPrimary }} size={30}>

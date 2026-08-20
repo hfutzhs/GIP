@@ -4,6 +4,7 @@ import WorkbenchLayout from './shared/layouts/WorkbenchLayout'
 import AppsList from './developer-center/pages/AppsList'
 import Admin from './developer-center/pages/Admin'
 import AppEntry from './workbench/pages/AppEntry'
+import Login from './pages/Login'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/app/:code" element={<WorkbenchLayout />}>
         <Route index element={<AppEntry />} />
       </Route>
+      <Route path="/login" element={<Login />} />
       <Route path="*" element={<Navigate to="/apps" replace />} />
     </Routes>
   )

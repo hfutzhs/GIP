@@ -9,20 +9,24 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "antd": "^5.21.6",
     "@ant-design/icons": "^5.5.1",
+    "antd": "^5.21.6",
+    "dayjs": "^1.11.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.27.0",
-    "zustand": "^4.5.5",
-    "dayjs": "^1.11.13"
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
+    "jsdom": "^25.0.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   },
   "description": "GIP - 北汽光粒智能平台 V1.0 (应用中心 + 流程中心 + 系统配置)",
   "license": "UNLICENSED"

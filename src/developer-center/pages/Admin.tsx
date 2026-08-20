@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Layout, Menu, Card, Row, Col, Button, Tag, Progress, Drawer, Switch, Form, Input, InputNumber, Select, Table, Statistic, List, Descriptions, App as AntdApp, Empty, Modal, Tree } from 'antd'
+import { useSearchParams } from 'react-router-dom'
+import { Layout, Menu, Card, Row, Col, Button, Tag, Drawer, Switch, Form, Input, InputNumber, Select, Table, Statistic, List, Descriptions, App as AntdApp, Empty, Modal, Tree } from 'antd'
 import {
   CloudServerOutlined,
   DeploymentUnitOutlined,
@@ -28,7 +29,7 @@ import {
 } from '@ant-design/icons'
 import { tenants as seedTenants } from '@/mock/tenants'
 import { capabilities } from '@/mock/capabilities'
-import type { Tenant, CapabilityKey } from '@/types'
+import type { Tenant } from '@/types'
 import ProcessDesigner from './admin/ProcessDesigner'
 import { businessDomains } from '@/mock/businessDomains'
 import type { BusinessDomain } from '@/types'
@@ -38,8 +39,11 @@ import { accounts as seedAccounts } from '@/mock/accounts'
 import type { Account } from '@/mock/accounts'
 import FormDesigner from './admin/FormDesigner'
 import EntityDesigner from './admin/EntityDesigner'
+import { useAppStore } from '@/store/useAppStore'
+import { readSsoConfig, writeSsoConfig, regexToHints } from '@/shared/passwordRule'
+import type { SsoConfig } from '@/shared/passwordRule'
 
-const { Sider, Content } = Layout
+const { Content } = Layout
 
 const processSideItems = [
   { key: 'process-design', icon: <ApartmentOutlined />, label: '流程设计' },
@@ -51,7 +55,7 @@ const processSideItems = [
 
 const systemSideItems = [
   { key: 'tenant', icon: <CloudServerOutlined />, label: '租户管理' },
-  { key: 'org-data', icon: <TeamOutlined />, label: '人员组织' },
+  { key: 'org-data', icon: <TeamOutlined />, label: '人员主数据' },
   { key: 'account', icon: <UserSwitchOutlined />, label: '账号管理' },
   { key: 'sso', icon: <SafetyCertificateOutlined />, label: 'SSO配置' },
   { key: 'dict', icon: <BookOutlined />, label: '字典管理' },
@@ -59,26 +63,26 @@ const systemSideItems = [
 
 // 流程定义
 const processDefs = [
-  { key: 'contract_approval', name: '合同审批流程', version: 'v3', nodes: 5, status: '已启用', apps: '合同审批系统' },
-  { key: 'vehicle_dispatch', name: '车辆调度确认流程', version: 'v2', nodes: 3, status: '已启用', apps: '车辆调度平台' },
-  { key: 'supplier_qualify', name: '供应商资质审核流程', version: 'v1', nodes: 4, status: '草稿', apps: '供应商门户' },
-  { key: 'purchase_order', name: '采购下单审批流程', version: 'v5', nodes: 6, status: '已启用', apps: '合同审批系统' },
+  { key: 'contract_approval', name: '合同审批流程', version: 'v3', nodes: 5, status: '已启用', apps: '合同审批系统', tenantId: 'T001' },
+  { key: 'vehicle_dispatch', name: '车辆调度确认流程', version: 'v2', nodes: 3, status: '已启用', apps: '车辆调度平台', tenantId: 'T001' },
+  { key: 'supplier_qualify', name: '供应商资质审核流程', version: 'v1', nodes: 4, status: '草稿', apps: '供应商门户', tenantId: 'T002' },
+  { key: 'purchase_order', name: '采购下单审批流程', version: 'v5', nodes: 6, status: '已启用', apps: '合同审批系统', tenantId: 'T003' },
 ]
 
 // 表单定义
 const formDefs = [
-  { key: 'f1', name: '合同录入表单', version: 'v2', fields: 18, status: '已发布', apps: '合同审批系统' },
-  { key: 'f2', name: '车辆调度单', version: 'v1', fields: 12, status: '已发布', apps: '车辆调度平台' },
-  { key: 'f3', name: '供应商注册表', version: 'v3', fields: 24, status: '草稿', apps: '供应商门户' },
-  { key: 'f4', name: '采购申请单', version: 'v1', fields: 9, status: '已发布', apps: '合同审批系统' },
+  { key: 'f1', name: '合同录入表单', version: 'v2', fields: 18, status: '已发布', apps: '合同审批系统', tenantId: 'T001' },
+  { key: 'f2', name: '车辆调度单', version: 'v1', fields: 12, status: '已发布', apps: '车辆调度平台', tenantId: 'T001' },
+  { key: 'f3', name: '供应商注册表', version: 'v3', fields: 24, status: '草稿', apps: '供应商门户', tenantId: 'T002' },
+  { key: 'f4', name: '采购申请单', version: 'v1', fields: 9, status: '已发布', apps: '合同审批系统', tenantId: 'T003' },
 ]
 
 // 实体定义
 const entityDefs = [
-  { key: 'e1', name: 'Contract 合同', table: 'biz_contract', fields: 32, status: '已同步', apps: '合同审批系统' },
-  { key: 'e2', name: 'Vehicle 车辆', table: 'biz_vehicle', fields: 26, status: '已同步', apps: '车辆调度平台' },
-  { key: 'e3', name: 'Supplier 供应商', table: 'biz_supplier', fields: 41, status: '已同步', apps: '供应商门户' },
-  { key: 'e4', name: 'PurchaseOrder 采购单', table: 'biz_purchase_order', fields: 28, status: '待同步', apps: '合同审批系统' },
+  { key: 'e1', name: 'Contract 合同', table: 'biz_contract', fields: 32, status: '已同步', apps: '合同审批系统', tenantId: 'T001' },
+  { key: 'e2', name: 'Vehicle 车辆', table: 'biz_vehicle', fields: 26, status: '已同步', apps: '车辆调度平台', tenantId: 'T001' },
+  { key: 'e3', name: 'Supplier 供应商', table: 'biz_supplier', fields: 41, status: '已同步', apps: '供应商门户', tenantId: 'T002' },
+  { key: 'e4', name: 'PurchaseOrder 采购单', table: 'biz_purchase_order', fields: 28, status: '待同步', apps: '合同审批系统', tenantId: 'T003' },
 ]
 
 // 系统角色
@@ -166,6 +170,36 @@ const seedPersons: PersonItem[] = [
   { key: 'p10', name: '郑敏', empNo: 'BAIC010', dept: '北汽福田-销售部', position: '销售顾问', phone: '138****1010', status: '在职' },
 ]
 
+// org key -> title 映射（用于展示）
+const orgKeyTitleMap: Record<string, string> = {}
+const buildTitleMap = (nodes: OrgNode[]) => {
+  for (const n of nodes) { orgKeyTitleMap[n.key] = n.title; if (n.children) buildTitleMap(n.children) }
+}
+buildTitleMap(orgTree)
+
+// org key -> 完整部门路径（父标题-当前标题，用于匹配人员 dept）
+const orgPathMap: Record<string, string> = {}
+const buildPathMap = (nodes: OrgNode[], parent: string) => {
+  for (const n of nodes) {
+    const path = parent ? parent + '-' + n.title : n.title
+    orgPathMap[n.key] = path
+    if (n.children) buildPathMap(n.children, path)
+  }
+}
+buildPathMap(orgTree, '')
+
+// 根据关联组织统计用户数（去重）
+const countUsersByOrgs = (orgIds: string[]): number => {
+  const matched = new Set<string>()
+  for (const p of seedPersons) {
+    for (const oid of orgIds) {
+      const path = orgPathMap[oid]
+      if (path && p.dept.includes(path)) { matched.add(p.key); break }
+    }
+  }
+  return matched.size
+}
+
 // 组织树按部门名称过滤（保留匹配节点及其祖先链与子树）
 const filterOrgTree = (nodes: OrgNode[], q: string): OrgNode[] => {
   if (!q) return nodes
@@ -200,21 +234,19 @@ const collectOrgKeys = (nodes: OrgNode[]): string[] => {
 
 export default function Admin({ section = 'process' }: { section?: 'process' | 'system' }) {
   const { message } = AntdApp.useApp()
-  const sideItems = section === 'process' ? processSideItems : systemSideItems
-  const [active, setActive] = useState(section === 'process' ? 'process-design' : 'tenant')
+  const [searchParams] = useSearchParams()
+  const active = searchParams.get('tab') || (section === 'process' ? 'process-design' : 'tenant')
+  const currentTenantId = useAppStore((s) => s.currentTenantId)
 
   useEffect(() => {
-    setActive(section === 'process' ? 'process-design' : 'tenant')
     setDesigningItem(null)
     setOrgSearch('')
     setSelectedDept(null)
   }, [section])
-  const openKeys = active.startsWith('process') ? ['process'] : []
   const [tenants, setTenants] = useState<Tenant[]>(seedTenants.map((t) => ({ ...t })))
-  const [detailTenant, setDetailTenant] = useState<Tenant | null>(null)
-  const [detailCaps, setDetailCaps] = useState<CapabilityKey[]>([])
-  const [detailQuota, setDetailQuota] = useState<number>(0)
-  const [detailTheme, setDetailTheme] = useState<string>('')
+  const [tenantDrawer, setTenantDrawer] = useState<{ open: boolean; editing: Tenant | null }>({ open: false, editing: null })
+  const [tenantForm] = Form.useForm()
+  const [tenantOrgChecked, setTenantOrgChecked] = useState<string[]>([])
   const [designingItem, setDesigningItem] = useState<{ type: string; name: string } | null>(null)
   const [orgSearch, setOrgSearch] = useState('')
   const [selectedDept, setSelectedDept] = useState<string | null>(null)
@@ -230,33 +262,37 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
   const [accounts, setAccounts] = useState<Account[]>(seedAccounts.map((a) => ({ ...a })))
   const [acctSearch, setAcctSearch] = useState('')
   const [acctStatus, setAcctStatus] = useState<'all' | 'enabled' | 'disabled'>('all')
-  const [pwdModal, setPwdModal] = useState<{ open: boolean; account: Account | null; newPwd: string }>({ open: false, account: null, newPwd: '' })
+ const [pwdModal, setPwdModal] = useState<{ open: boolean; account: Account | null; newPwd: string }>({ open: false, account: null, newPwd: '' })
+  const [ssoConfig, setSsoConfig] = useState<SsoConfig>(() => readSsoConfig())
 
-  const openTenant = (t: Tenant) => {
-    setDetailTenant(t)
-    setDetailCaps([...t.capabilities])
-    setDetailQuota(t.quota)
-    setDetailTheme(t.theme)
+  const openTenantCreate = () => {
+    setTenantDrawer({ open: true, editing: null })
+    tenantForm.resetFields()
+    tenantForm.setFieldsValue({ name: '', status: 'running' })
+    setTenantOrgChecked([])
   }
 
-  const toggleCap = (k: CapabilityKey, on: boolean) => {
-    setDetailCaps((prev) => (on ? Array.from(new Set([...prev, k])) : prev.filter((x) => x !== k)))
+  const openTenantEdit = (t: Tenant) => {
+    setTenantDrawer({ open: true, editing: t })
+    tenantForm.setFieldsValue({ name: t.name, status: t.status })
+    setTenantOrgChecked(t.orgIds)
   }
 
   const saveTenant = () => {
-    if (!detailTenant) return
-    setTenants((prev) =>
-      prev.map((t) =>
-        t.id === detailTenant.id ? { ...t, capabilities: detailCaps, quota: detailQuota, theme: detailTheme } : t,
-      ),
-    )
-    message.success(`${detailTenant.name} 配置已保存`)
-    setDetailTenant(null)
+    tenantForm.validateFields().then((v) => {
+      const userCount = countUsersByOrgs(tenantOrgChecked)
+      if (tenantDrawer.editing) {
+        setTenants((prev) => prev.map((t) => t.id === tenantDrawer.editing!.id ? { ...t, name: v.name, status: v.status, orgIds: tenantOrgChecked, userCount } : t))
+        message.success('租户信息已更新')
+      } else {
+        const seq = 'T' + String(Date.now()).slice(-6)
+        setTenants((prev) => [...prev, { id: seq, name: v.name, code: seq, status: v.status, orgIds: tenantOrgChecked, userCount }])
+        message.success('租户已创建')
+      }
+      setTenantDrawer((prev) => ({ ...prev, open: false }))
+    })
   }
 
-  const createTenant = () => {
-    message.info('开通租户向导（演示环境）：将引导填写租户名称、管理员、配额与能力套餐')
-  }
 
   const renderPanel = () => {
     switch (active) {
@@ -264,40 +300,35 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
         return (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>租户管理</h2>
-                <span style={{ fontSize: 13, color: '#94a3b8' }}>管理集团各租户的运行状态、配额与能力套餐</span>
-              </div>
-              <Button type="primary" icon={<PlusOutlined />} onClick={createTenant}>开通租户</Button>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>租户管理</h2>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openTenantCreate}>新建租户</Button>
             </div>
-            <Row gutter={[16, 16]}>
-              {tenants.map((t) => {
-                const pct = Math.round((t.usedQuota / t.quota) * 100)
-                return (
-                  <Col xs={24} sm={12} lg={8} key={t.id}>
-                    <Card className="hoverable" hoverable onClick={() => openTenant(t)} style={{ borderRadius: 12, cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>{t.name}</span>
-                        <Tag color={t.status === 'running' ? 'success' : 'default'}>{t.status === 'running' ? '运行中' : '已停用'}</Tag>
-                      </div>
-                      <Row gutter={16} style={{ marginBottom: 12 }}>
-                        <Col span={12}><Statistic title="应用数" value={t.appCount} /></Col>
-                        <Col span={12}><Statistic title="用户数" value={t.userCount} /></Col>
-                      </Row>
-                      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
-                        配额使用 {t.usedQuota.toLocaleString()} / {t.quota.toLocaleString()}
-                      </div>
-                      <Progress percent={pct} strokeColor={pct > 80 ? '#ef4444' : '#2563eb'} size="small" />
-                      <div style={{ marginTop: 10, fontSize: 12, color: '#94a3b8' }}>
-                        创建于 {t.createTime} · {t.capabilities.length} 项能力
-                      </div>
-                    </Card>
-                  </Col>
-                )
-              })}
-            </Row>
+            <Card style={{ borderRadius: 12 }}>
+              <Table
+                rowKey="id"
+                dataSource={tenants}
+                pagination={false}
+                size="middle"
+                columns={[
+                  { title: '名称', dataIndex: 'name', width: 140, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                  { title: '编码', dataIndex: 'code', width: 120, render: (v: string) => <code style={{ fontSize: 13 }}>{v}</code> },
+                  { title: '状态', dataIndex: 'status', width: 80, render: (s: string, t: Tenant) => <Switch size="small" checked={s === 'running'} onChange={(on) => { setTenants((prev) => prev.map((x) => x.id === t.id ? { ...x, status: on ? 'running' : 'stopped' } : x)); message.success(`${t.name} 已${on ? '启用' : '停用'}`) }} /> },
+                  { title: '用户数', dataIndex: 'userCount', width: 100 },
+                  { title: '关联组织', dataIndex: 'orgIds', render: (ids: string[]) => (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {ids.map((oid) => <Tag key={oid}>{orgKeyTitleMap[oid] ?? oid}</Tag>)}
+                    </div>
+                  ) },
+                  { title: '操作', width: 80, render: (_: unknown, t: Tenant) => (
+                    <Button size="small" type="link" onClick={() => openTenantEdit(t)}>编辑</Button>
+                  ) },
+                ]}
+              />
+            </Card>
           </div>
         )
+
+
       case 'process':
       case 'process-design':
       case 'form-design':
@@ -331,7 +362,7 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
                 </div>
                 <Card style={{ borderRadius: 12 }}>
                   <List
-                    dataSource={processDefs}
+                    dataSource={processDefs.filter((p) => p.tenantId === currentTenantId)}
                     renderItem={(p) => (
                       <List.Item actions={[<Button key="e" size="small" type="link" onClick={() => setDesigningItem({ type: 'process', name: p.name })}>设计</Button>]}>
                         <List.Item.Meta
@@ -356,7 +387,7 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
                 <Card style={{ borderRadius: 12 }}>
                   <Table
                     rowKey="key"
-                    dataSource={formDefs}
+                    dataSource={formDefs.filter((f) => f.tenantId === currentTenantId)}
                     pagination={false}
                     size="middle"
                     columns={[
@@ -382,7 +413,7 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
                 <Card style={{ borderRadius: 12 }}>
                   <Table
                     rowKey="key"
-                    dataSource={entityDefs}
+                    dataSource={entityDefs.filter((e) => e.tenantId === currentTenantId)}
                     pagination={false}
                     size="middle"
                     columns={[
@@ -669,26 +700,39 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
             </Card>
           </div>
         )
-      case 'sso':
+      case 'sso': {
+        const hints = regexToHints(ssoConfig.passwordRegex)
+        const saveSsoConfig = () => {
+          writeSsoConfig(ssoConfig)
+          message.success('SSO 配置已保存')
+        }
         return (
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 0, marginBottom: 16 }}>SSO 配置</h2>
             <Card style={{ borderRadius: 12, maxWidth: 640 }}>
-              <Form layout="vertical" initialValues={{ mode: 'OAuth2', expire: 7200, domain: 'baic.com.cn' }}>
-                <Form.Item label="认证协议" name="mode">
-                  <Select options={[{ value: 'OAuth2', label: 'OAuth 2.0' }, { value: 'SAML', label: 'SAML 2.0' }, { value: 'CAS', label: 'CAS' }]} />
+              <Form layout="vertical">
+                <Form.Item label="令牌有效期（秒）">
+                  <InputNumber min={60} style={{ width: '100%' }} value={ssoConfig.tokenExpiry} onChange={(v) => setSsoConfig((p) => ({ ...p, tokenExpiry: Number(v) || 60 }))} />
                 </Form.Item>
-                <Form.Item label="令牌有效期（秒）" name="expire">
-                  <InputNumber min={60} style={{ width: '100%' }} />
+                <Form.Item label="密码规则（正则表达式）" extra={<span style={{ fontSize: 12, color: '#64748b' }}>规则转译：{hints.join('；')}</span>}>
+                  <Input value={ssoConfig.passwordRegex} onChange={(e) => setSsoConfig((p) => ({ ...p, passwordRegex: e.target.value }))} placeholder="例如：^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,20}$" />
                 </Form.Item>
-                <Form.Item label="可信域名" name="domain">
-                  <Input />
+                <Form.Item label="密码有效期（月）">
+                  <InputNumber min={1} style={{ width: '100%' }} value={ssoConfig.passwordExpiryMonths} onChange={(v) => setSsoConfig((p) => ({ ...p, passwordExpiryMonths: Number(v) || 1 }))} />
                 </Form.Item>
-                <Button type="primary" onClick={() => message.success('SSO 配置已保存')}>保存配置</Button>
+                <Button type="primary" onClick={saveSsoConfig}>保存配置</Button>
               </Form>
+              <div style={{ marginTop: 16, padding: 12, background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b', lineHeight: 1.8 }}>
+                <div style={{ fontWeight: 600, color: '#475569', marginBottom: 4 }}>规则说明（用户可读）</div>
+                {hints.map((h) => (
+                  <div key={h}>· {h}</div>
+                ))}
+                <div style={{ marginTop: 4 }}>该规则将同步至登录页「修改密码」，用户改密时实时校验。</div>
+              </div>
             </Card>
           </div>
         )
+      }
       case 'notification':
         return (
           <div>
@@ -919,75 +963,54 @@ export default function Admin({ section = 'process' }: { section?: 'process' | '
   }
 
   return (
-    <Layout style={{ minHeight: 'calc(100vh - 60px)' }}>
-      <Sider width={220} theme="light" style={{ background: '#fff', borderRight: '1px solid #d8e2f0' }}>
-        <div style={{ color: '#94a3b8', fontSize: 12, padding: '16px 20px 8px', fontWeight: 600, letterSpacing: 1 }}>{section === 'process' ? '流程中心' : '系统配置'}</div>
-        <Menu
-          theme="light"
-          mode="inline"
-          selectedKeys={[active]}
-          defaultOpenKeys={active.startsWith('process') ? ['process'] : []}
-          onClick={({ key }) => { setActive(key); setDesigningItem(null) }}
-          style={{ borderRight: 0 }}
-          items={sideItems}
-        />
-      </Sider>
-      <Content style={{ padding: '20px 24px 40px', background: '#f5f7fa' }}>
-        {renderPanel()}
+    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
+      <Content>
+        <div style={{ padding: '20px 24px 40px' }}>
+          {renderPanel()}
+        </div>
       </Content>
 
       <Drawer
-        title={detailTenant ? `${detailTenant.name} · 租户详情` : '租户详情'}
-        open={!!detailTenant}
-        onClose={() => setDetailTenant(null)}
-        width={460}
-        extra={<Button type="primary" onClick={saveTenant}>保存配置</Button>}
-      >
-        {detailTenant && (
-          <div>
-            <Descriptions column={1} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="租户ID">{detailTenant.id}</Descriptions.Item>
-              <Descriptions.Item label="状态"><Tag color="success">运行中</Tag></Descriptions.Item>
-              <Descriptions.Item label="创建时间">{detailTenant.createTime}</Descriptions.Item>
-              <Descriptions.Item label="应用数">{detailTenant.appCount}</Descriptions.Item>
-              <Descriptions.Item label="用户数">{detailTenant.userCount.toLocaleString()}</Descriptions.Item>
-            </Descriptions>
-
-            <Card size="small" title="配额管理" style={{ borderRadius: 10, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
-                已用 {detailTenant.usedQuota.toLocaleString()} / 配额 {(detailQuota || detailTenant.quota).toLocaleString()}
-              </div>
-              <Progress percent={Math.round((detailTenant.usedQuota / (detailQuota || detailTenant.quota)) * 100)} strokeColor="#2563eb" style={{ marginBottom: 12 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, color: '#64748b' }}>调整配额：</span>
-                <InputNumber min={detailTenant.usedQuota} value={detailQuota} onChange={(v) => setDetailQuota(v ?? detailTenant.quota)} style={{ width: 140 }} />
-              </div>
-            </Card>
-
-            <Card size="small" title="能力开关" style={{ borderRadius: 10, marginBottom: 16 }}>
-              {capabilities.map((c) => (
-                <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
-                  <span style={{ fontSize: 13 }}>{c.name}</span>
-                  <Switch checked={detailCaps.includes(c.key)} onChange={(on) => toggleCap(c.key, on)} />
-                </div>
-              ))}
-            </Card>
-
-            <Card size="small" title="主题配置" style={{ borderRadius: 10 }}>
-              <Select
-                value={detailTheme}
-                onChange={setDetailTheme}
-                style={{ width: '100%' }}
-                options={[
-                  { value: '品牌蓝 #2563eb', label: '品牌蓝 #2563eb' },
-                  { value: '福田绿 #16a34a', label: '福田绿 #16a34a' },
-                  { value: '奔驰银 #6b7280', label: '奔驰银 #6b7280' },
-                  { value: '科技青 #06b6d4', label: '科技青 #06b6d4' },
-                ]}
-              />
-            </Card>
+        title={tenantDrawer.editing ? '编辑租户' : '新建租户'}
+        open={tenantDrawer.open}
+        onClose={() => setTenantDrawer((p) => ({ ...p, open: false }))}
+        width={520}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={() => setTenantDrawer((p) => ({ ...p, open: false }))}>取消</Button>
+            <Button type="primary" onClick={saveTenant}>保存</Button>
           </div>
-        )}
+        }
+      >
+        <Form form={tenantForm} layout="vertical">
+          <Form.Item label="租户名称" name="name" rules={[{ required: true, message: '请输入租户名称' }]}>
+            <Input placeholder="请输入租户名称" maxLength={20} showCount />
+          </Form.Item>
+          <Form.Item label="租户编码" extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>系统自动生成，唯一值</span>}>
+            <Input value={tenantDrawer.editing ? tenantDrawer.editing.code : '保存后自动生成'} disabled />
+          </Form.Item>
+          <Form.Item label="状态" name="status" rules={[{ required: true }]}>
+            <Select options={[{ value: 'running', label: '运行中' }, { value: 'stopped', label: '已停用' }]} />
+          </Form.Item>
+          <Form.Item label="关联组织" required>
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 8, padding: 12, maxHeight: 280, overflow: 'auto' }}>
+              <Tree
+                checkable
+                treeData={orgTree}
+                checkedKeys={tenantOrgChecked}
+                onCheck={(keys) => setTenantOrgChecked(keys as string[])}
+                style={{ fontSize: 13 }}
+              />
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+              可选范围来自人员组织数据，支持多选。用户数将自动统计为所关联组织的全部人员数。
+            </div>
+          </Form.Item>
+          <div style={{ background: '#f1f5f9', borderRadius: 8, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: '#64748b' }}>关联用户数（自动统计）</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#2563eb' }}>{countUsersByOrgs(tenantOrgChecked)}</span>
+          </div>
+        </Form>
       </Drawer>
     </Layout>
   )

@@ -1,21 +1,39 @@
 import { useState } from 'react'
 import { Card, Button, Input, Space, Tag, Empty, Select, App as AntdApp } from 'antd'
-import { PlusOutlined, SearchOutlined, ArrowRightOutlined, LinkOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, LinkOutlined, EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useAppStore } from '@/store/useAppStore'
 import AppDrawer from './AppDrawer'
 import { AppIcon } from '@/shared/components/AppIcon'
 import { businessDomains } from '@/mock/businessDomains'
+import type { App } from '@/types'
 import type { BusinessDomain } from '@/types'
 
 export default function AppsList() {
-  const { message } = AntdApp.useApp()
+  const { message, modal } = AntdApp.useApp()
   const apps = useAppStore((s) => s.apps)
+  const deleteApp = useAppStore((s) => s.deleteApp)
+  const currentTenantId = useAppStore((s) => s.currentTenantId)
   const [keyword, setKeyword] = useState('')
   const [domainFilter, setDomainFilter] = useState<string>('all')
   const [drawerState, setDrawerState] = useState<{ mode: 'create' | 'edit' | 'view'; open: boolean; appId?: string }>({ mode: 'create', open: false })
   const localDomains = businessDomains
+  const confirmDelete = (a: App) => {
+    modal.confirm({
+      title: '确认删除应用',
+      content: `确定要删除应用「${a.name}」吗？删除后不可恢复。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => {
+        deleteApp(a.id)
+        message.success(`应用「${a.name}」已删除`)
+      },
+    })
+  }
 
-  const filtered = apps.filter(
+
+  const tenantApps = apps.filter((a) => a.tenantId === currentTenantId)
+  const filtered = tenantApps.filter(
     (a) =>
       a.name.toLowerCase().includes(keyword.toLowerCase()) &&
       (domainFilter === 'all' || a.domain === domainFilter),
@@ -68,7 +86,7 @@ export default function AppsList() {
           </div>
           {localDomains.sort((a, b) => a.sort - b.sort).map((d) => {
             const active = domainFilter === d.key
-            const count = apps.filter((a) => a.domain === d.key).length
+            const count = tenantApps.filter((a) => a.domain === d.key).length
             return (
               <div
                 key={d.key}
@@ -124,10 +142,10 @@ export default function AppsList() {
                 <div style={{ fontSize: 12, color: '#64748b', marginTop: 12, marginBottom: 8, lineHeight: 1.6, minHeight: 38 }}>
                   {a.description}
                 </div>
-                <div style={{ borderTop: '1px dashed #eef2f7', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                  <Tag style={{ margin: 0, color: '#2563eb', cursor: 'pointer', background: '#eaf1ff', border: 'none' }}>
-                    查看详情 <ArrowRightOutlined />
-                  </Tag>
+                <div style={{ borderTop: '1px dashed #eef2f7', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
+                  <Button size="small" type="text" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); setDrawerState({ mode: 'view', open: true, appId: a.id }) }}>查看</Button>
+                  <Button size="small" type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); setDrawerState({ mode: 'edit', open: true, appId: a.id }) }}>编辑</Button>
+                  <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); confirmDelete(a) }}>删除</Button>
                 </div>
               </Card>
             ))}

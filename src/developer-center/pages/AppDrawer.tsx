@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Drawer, Form, Input, Select, Button, Radio, Space, App as AntdApp, Descriptions, Typography, Alert, Tag, Modal } from 'antd'
 import { CheckOutlined, EditOutlined } from '@ant-design/icons'
 import { useAppStore } from '@/store/useAppStore'
-import { tenants } from '@/mock/tenants'
 import { AppIcon } from '@/shared/components/AppIcon'
 import { businessDomains, domainMap } from '@/mock/businessDomains'
 import type { App } from '@/types'
@@ -27,6 +26,7 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
   const createApp = useAppStore((s) => s.createApp)
   const updateApp = useAppStore((s) => s.updateApp)
   const app = useAppStore((s) => (appId ? s.apps.find((a) => a.id === appId) : undefined))
+  const currentTenantId = useAppStore((s) => s.currentTenantId)
   const [form] = Form.useForm()
   const [icon, setIcon] = useState('Appstore')
   const [color, setColor] = useState('#2563eb')
@@ -37,7 +37,7 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
   useEffect(() => {
     if (open && mode === 'create') {
       form.resetFields()
-      form.setFieldsValue({ tenantId: tenants[0].id, description: '', domain: 'general' })
+      form.setFieldsValue({ description: '', domain: 'general' })
       setIcon('Appstore')
       setColor('#2563eb')
       setCode('')
@@ -46,7 +46,6 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
         name: app.name,
         description: app.description,
         code: app.code,
-        tenantId: app.tenantId,
         domain: app.domain,
         accessUrl: app.accessUrl,
       })
@@ -60,18 +59,15 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
     try {
       const values = await form.validateFields()
       if (mode === 'create') {
-        if (!/^[a-z0-9-]{2,30}$/.test(values.code)) {
-          message.error('应用编码只能包含小写字母、数字和连字符，2-30 位')
-          return
-        }
-        const id = createApp({ ...values, icon, iconBg: color, domain: values.domain || 'general' })
+
+        const id = createApp({ ...values, tenantId: currentTenantId, icon, iconBg: color, domain: values.domain || 'general' })
         const newApp = useAppStore.getState().getApp(id)
         setCreatedSecret(newApp?.appSecret ?? '')
         onClose()
         setShowSecret(true)
         onCreated?.(id)
       } else if (mode === 'edit' && app) {
-        updateApp(app.id, { name: values.name, description: values.description, tenantId: values.tenantId, domain: values.domain, accessUrl: values.accessUrl, icon, iconBg: color })
+        updateApp(app.id, { name: values.name, description: values.description, domain: values.domain, accessUrl: values.accessUrl, icon, iconBg: color })
         message.success('应用信息已保存')
         onClose()
       }
@@ -89,7 +85,7 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
   const titleMap = { create: '创建应用', edit: '编辑应用', view: '应用详情' }
 
   const formContent = (
-    <Form form={form} layout="vertical" initialValues={{ tenantId: tenants[0].id, description: '', domain: 'general' }} requiredMark>
+    <Form form={form} layout="vertical" initialValues={{ description: '', domain: 'general' }} requiredMark>
       <Form.Item label="应用名称" name="name" rules={[{ required: true, message: '请输入应用名称' }]}>
         <Input placeholder="例如：合同审批系统" maxLength={30} showCount />
       </Form.Item>
@@ -149,19 +145,11 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
         </Space>
       </Form.Item>
 
-      <Form.Item
-        label="应用编码"
-        name="code"
-        rules={[{ required: true, message: '请输入应用编码' }]}
-        extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>创建后不可修改，将作为工作台访问地址的后缀：/app/<b style={{ color: '#2563eb' }}>{code || 'your-code'}</b></span>}
-      >
-        <Input
-          placeholder="例如：contract-approval"
-          disabled={mode === 'edit'}
-          onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-          value={code}
-        />
-      </Form.Item>
+      {mode === 'edit' && (
+        <Form.Item label="应用编码" name="code" extra={<span style={{ fontSize: 12, color: '#94a3b8' }}>系统自动生成，创建后不可修改</span>}>
+          <Input disabled />
+        </Form.Item>
+      )}
 
       <Form.Item
         label="访问地址"
@@ -172,11 +160,6 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
         <Input placeholder="https://workbench.baic.com.cn/app/your-code" />
       </Form.Item>
 
-      <Form.Item label="所属租户" name="tenantId" rules={[{ required: true, message: '请选择租户' }]}>
-        <Select
-          options={tenants.map((t) => ({ value: t.id, label: `${t.name}（${t.appCount} 应用 / ${t.userCount} 用户）` }))}
-        />
-      </Form.Item>
     </Form>
   )
 
@@ -200,7 +183,6 @@ export default function AppDrawer({ mode, open, appId, onClose, onEdit, onCreate
         <Descriptions.Item label="应用编码"><Text code style={{ fontSize: 13 }}>{app.code}</Text></Descriptions.Item>
         <Descriptions.Item label="应用描述">{app.description}</Descriptions.Item>
         <Descriptions.Item label="访问地址"><Text style={{ fontSize: 13, fontFamily: 'monospace' }}>{app.accessUrl}</Text></Descriptions.Item>
-        <Descriptions.Item label="所属租户">{tenants.find((t) => t.id === app.tenantId)?.name ?? app.tenantId}</Descriptions.Item>
         <Descriptions.Item label="业务领域">{domainMap[app.domain]?.name ?? app.domain}</Descriptions.Item>
       </Descriptions>
 
